@@ -107,3 +107,16 @@ extra (`pip install ".[signature]"`, `FINARENA_ENABLE_SIGNATURE=1`) and is off b
 
 Qwen2.5-0.5B-Instruct is Apache-2.0. Datasets: UCI credit default (CC BY 4.0), `zeroshot/twitter-financial-news-sentiment`
 (check its card for current terms before commercial use).
+
+## Companion projects
+
+The models FinArena serves were built and benchmarked in their own repos, with data, tests and caveats:
+
+- [fin-lora](https://github.com/shaikn6/fin-lora): LoRA-tuned Qwen2.5-0.5B for finance sentiment versus a TF-IDF baseline, plus the confidence cascade (sentiment endpoint)
+- [credit-arena](https://github.com/shaikn6/credit-arena): credit-default model comparison with significance tests and a fair-lending audit (credit endpoint)
+- [sigdet](https://github.com/shaikn6/sigdet): signature detector and robustness study (signature endpoint; see Licensing above)
+
+Related experiments the API does not use:
+
+- [trade-arena](https://github.com/shaikn6/trade-arena): walk-forward backtest of trading models, net of costs
+- [exec-rl](https://github.com/shaikn6/exec-rl): PPO trade-execution agent (simulation only)
