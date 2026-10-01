@@ -1,0 +1,186 @@
+{
+  "sentiment": {
+    "dataset": "2,388 held-out finance tweets",
+    "models": [
+      {
+        "name": "tfidf+logreg",
+        "accuracy": 0.8279,
+        "macro_f1": 0.7459,
+        "latency_ms": 0.2
+      },
+      {
+        "name": "finbert (zero-shot)",
+        "accuracy": 0.7253,
+        "macro_f1": 0.6682,
+        "latency_ms": 10.9
+      },
+      {
+        "name": "qwen2.5-0.5b zero-shot",
+        "accuracy": 0.6558,
+        "macro_f1": 0.3098,
+        "latency_ms": 58.4
+      },
+      {
+        "name": "qwen2.5-0.5b + LoRA",
+        "accuracy": 0.907,
+        "macro_f1": 0.8796,
+        "latency_ms": 74.3
+      }
+    ],
+    "cascade": [
+      {
+        "threshold": 0.0,
+        "escalated": 0.0,
+        "accuracy": 0.8278894472361809,
+        "avg_cost": 0.2
+      },
+      {
+        "threshold": 0.4,
+        "escalated": 0.012981574539363484,
+        "accuracy": 0.8345896147403685,
+        "avg_cost": 1.1645309882747068
+      },
+      {
+        "threshold": 0.5,
+        "escalated": 0.06909547738693467,
+        "accuracy": 0.8542713567839196,
+        "avg_cost": 5.333793969849245
+      },
+      {
+        "threshold": 0.6,
+        "escalated": 0.15954773869346733,
+        "accuracy": 0.88107202680067,
+        "avg_cost": 12.054396984924622
+      },
+      {
+        "threshold": 0.7,
+        "escalated": 0.2508375209380235,
+        "accuracy": 0.8961474036850922,
+        "avg_cost": 18.837227805695143
+      },
+      {
+        "threshold": 0.8,
+        "escalated": 0.36976549413735343,
+        "accuracy": 0.9032663316582915,
+        "avg_cost": 27.673576214405358
+      },
+      {
+        "threshold": 0.9,
+        "escalated": 0.5632328308207705,
+        "accuracy": 0.907035175879397,
+        "avg_cost": 42.04819932998325
+      },
+      {
+        "threshold": 0.95,
+        "escalated": 0.7328308207705193,
+        "accuracy": 0.907035175879397,
+        "avg_cost": 54.64932998324959
+      },
+      {
+        "threshold": 1.01,
+        "escalated": 1.0,
+        "accuracy": 0.907035175879397,
+        "avg_cost": 74.5
+      }
+    ]
+  },
+  "credit": {
+    "dataset": "30,000 card accounts, 6,000 held-out",
+    "models": [
+      {
+        "name": "logistic regression",
+        "auc": 0.7459,
+        "ci": [
+          0.7308,
+          0.76
+        ],
+        "cost": 0.6088
+      },
+      {
+        "name": "random forest",
+        "auc": 0.772,
+        "ci": [
+          0.7585,
+          0.7856
+        ],
+        "cost": 0.5687
+      },
+      {
+        "name": "hist gradient boosting",
+        "auc": 0.7735,
+        "ci": [
+          0.7591,
+          0.7877
+        ],
+        "cost": 0.5618
+      },
+      {
+        "name": "MLP (64-32)",
+        "auc": 0.7601,
+        "ci": [
+          0.7456,
+          0.7761
+        ],
+        "cost": 0.5872
+      },
+      {
+        "name": "ensemble (LR+HGB+MLP)",
+        "auc": 0.7694,
+        "ci": [
+          0.7558,
+          0.7843
+        ],
+        "cost": 0.562
+      },
+      {
+        "name": "segment specialists (HGB x2)",
+        "auc": 0.7698,
+        "ci": [
+          0.7563,
+          0.784
+        ],
+        "cost": 0.5607
+      }
+    ]
+  },
+  "trading": {
+    "dataset": "10 assets, walk-forward 2015-2026, net of costs",
+    "strategies": [
+      {
+        "name": "buy & hold",
+        "sharpe_net": 0.65,
+        "sharpe_gross": 0.65
+      },
+      {
+        "name": "SMA 50/200 crossover",
+        "sharpe_net": 0.48,
+        "sharpe_gross": 0.49
+      },
+      {
+        "name": "12-1 momentum",
+        "sharpe_net": 0.44,
+        "sharpe_gross": 0.48
+      },
+      {
+        "name": "logistic regression",
+        "sharpe_net": 0.35,
+        "sharpe_gross": 0.63
+      },
+      {
+        "name": "gradient boosting",
+        "sharpe_net": 0.24,
+        "sharpe_gross": 0.65
+      },
+      {
+        "name": "MLP",
+        "sharpe_net": 0.34,
+        "sharpe_gross": 0.65
+      },
+      {
+        "name": "CONTROL: shuffled labels",
+        "sharpe_net": 0.1,
+        "sharpe_gross": 0.49
+      }
+    ]
+  }
+}

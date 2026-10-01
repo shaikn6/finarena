@@ -1,0 +1,8 @@
+.venv
+.git
+__pycache__
+tests
+*.md
+docs
+server.log
+artifacts/signature.pt

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinArena · The Model Desk</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%2315120f%27/%3E%3Ctext x=%2716%27 y=%2724%27 font-size=%2722%27 text-anchor=%27middle%27 fill=%27%23c8391a%27 font-family=%27Georgia%27%3EF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ece5d4; --paper2:#e3dbc7; --ink:#15120f; --ink2:#4a443b; --rule:#15120f;
+  --bear:#c8391a; --bull:#1d6b47; --neu:#b9811a; --accent:#c8391a;
+  --serif:"Instrument Serif",Georgia,serif; --sans:"Schibsted Grotesk",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{margin:0;color:var(--ink);font:400 15px/1.5 var(--sans);
+  background:
+   url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"),
+   var(--paper);}
+a{color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 60px}
+/* masthead */
+.mast{border-bottom:4px double var(--rule);padding:22px 0 14px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
+.mast h1{font:400 clamp(44px,8vw,96px)/.86 var(--serif);margin:0;letter-spacing:-.02em}
+.mast h1 em{color:var(--accent)}
+.mast .sub{font:500 11px/1.4 var(--mono);text-transform:uppercase;letter-spacing:.14em;color:var(--ink2);margin-top:10px}
+.key{display:flex;flex-direction:column;gap:4px;font:500 10px var(--mono);text-transform:uppercase;letter-spacing:.12em}
+.key input{font:400 12px var(--mono);padding:6px 8px;background:transparent;border:1px solid var(--ink);width:190px;color:var(--ink)}
+.tape{overflow:hidden;border-bottom:1px solid var(--rule);background:var(--ink);color:var(--paper);white-space:nowrap}
+.tape div{display:inline-block;padding:7px 0;font:500 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;animation:tape 60s linear infinite}
+.tape:hover div{animation-play-state:paused}
+.tape b{color:#f2a27f;font-weight:600}.tape i{font-style:normal;opacity:.45;padding:0 14px}
+@keyframes tape{to{transform:translateX(-50%)}}
+/* grid */
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:0;margin-top:26px;border:1px solid var(--rule)}
+.card{padding:22px 24px 26px;border-right:1px solid var(--rule)}
+.card:last-child{border-right:0}
+.card.full{grid-column:1/-1;border-right:0;border-top:1px solid var(--rule)}
+.kicker{font:600 10.5px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h2{font:400 clamp(30px,4vw,44px)/1 var(--serif);margin:6px 0 4px}
+h2 em{font-style:italic}
+.lede{color:var(--ink2);margin:0 0 16px;max-width:52ch}
+label.f{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;margin:14px 0 5px}
+textarea,input[type=number],select{width:100%;font:400 14px var(--mono);padding:10px 12px;background:rgba(255,255,255,.35);border:1px solid var(--ink);color:var(--ink);border-radius:0}
+textarea{min-height:104px;resize:vertical}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font:400 11.5px var(--mono);padding:4px 9px;border:1px dashed var(--ink);background:transparent;cursor:pointer;color:var(--ink2)}
+.chip:hover{background:var(--ink);color:var(--paper);border-style:solid}
+.seg{display:inline-flex;border:1px solid var(--ink)}
+.seg input{position:absolute;opacity:0}
+.seg label{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:8px 14px;cursor:pointer;border-right:1px solid var(--ink)}
+.seg label:last-of-type{border-right:0}
+.seg input:checked+label{background:var(--ink);color:var(--paper)}
+.seg input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.go{margin-top:16px;font:600 13px var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:13px 22px;background:var(--accent);color:#fff;border:0;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.go:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--ink)}
+.go:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.go[disabled]{opacity:.6;cursor:progress}
+.err{margin-top:12px;font:500 12.5px var(--mono);color:#fff;background:var(--bear);padding:8px 12px;display:none}
+/* results */
+.res{margin-top:20px;border-top:2px solid var(--ink);display:none}
+.row{display:grid;grid-template-columns:1fr;gap:8px;padding:14px 0;border-bottom:1px solid rgba(21,18,15,.25);animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+.row q{font:italic 400 17px/1.3 var(--serif);color:var(--ink2)}
+.verdict{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.lab{font:400 clamp(34px,5vw,52px)/1 var(--serif)}
+.lab.Bullish{color:var(--bull)}.lab.Bearish{color:var(--bear)}.lab.Neutral{color:var(--neu)}
+.conf{font:600 13px var(--mono)}
+.who{font:500 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--ink)}
+.who.llm{background:var(--ink);color:var(--paper)}
+.bars{display:grid;gap:5px}
+.bar{display:grid;grid-template-columns:62px 1fr 46px;gap:8px;align-items:center;font:500 11px var(--mono)}
+.bar span.t{height:9px;background:rgba(21,18,15,.12);position:relative}
+.bar span.t i{position:absolute;inset:0 auto 0 0;background:var(--ink);transform-origin:left;animation:grow .7s .1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.stamp{display:inline-block;font:600 14px var(--mono);letter-spacing:.16em;text-transform:uppercase;padding:6px 14px;border:3px double currentColor;transform:rotate(-5deg);mix-blend-mode:multiply;animation:thud .35s cubic-bezier(.2,1.6,.4,1) both}
+.stamp.esc{color:var(--accent)}.stamp.ok{color:var(--bull)}.stamp.no{color:var(--bear)}
+@keyframes thud{from{opacity:0;transform:rotate(-5deg) scale(2.2)}}
+/* credit */
+.sl{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px}
+.sl output{font:600 12px var(--mono)}
+input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gauge{width:100%;max-width:300px;display:block;margin:6px auto 0}
+.pd{font:400 54px/1 var(--serif);text-align:center;margin-top:-34px}
+.codes{margin:10px 0 0;padding:0;list-style:none;counter-reset:c}
+.codes li{counter-increment:c;padding:8px 0;border-bottom:1px solid rgba(21,18,15,.25);font-weight:500}
+.codes li::before{content:counter(c,upper-roman) ".";font:400 italic 20px var(--serif);color:var(--accent);margin-right:10px}
+/* arena */
+.cols{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:28px;margin-top:14px}
+.tbl{display:grid;gap:9px}
+.mrow{display:grid;grid-template-columns:128px 1fr 92px;gap:10px;align-items:center;font:500 11.5px var(--mono)}
+.mrow .nm{line-height:1.25}
+.mrow .tr{height:20px;background:rgba(21,18,15,.1);position:relative}
+.mrow .tr i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
+.mrow.best .tr i{background:var(--accent)}
+.mrow .val{font-weight:600;text-align:right;white-space:nowrap}
+.cap{margin-top:8px;font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+.big{font:400 clamp(40px,5vw,60px)/1 var(--serif)}
+.big small{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;display:block;color:var(--ink2);margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+svg text{font-family:var(--mono);font-size:10px;fill:var(--ink2)}
+.verd{border-left:4px solid var(--accent);padding:2px 0 2px 14px;font:italic 400 22px/1.2 var(--serif);margin-top:16px}
+.foot{margin-top:34px;padding-top:14px;border-top:4px double var(--rule);font:400 12px/1.6 var(--mono);color:var(--ink2);display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+@media (max-width:900px){.mrow{grid-template-columns:110px 1fr 84px}.grid{grid-template-columns:1fr}.card{border-right:0;border-bottom:1px solid var(--rule)}.cols{grid-template-columns:1fr}.mast{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="tape" aria-hidden="true"><div id="tape"></div></div>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <h1>Fin<em>Arena</em></h1>
+      <div class="sub">The Model Desk &nbsp;·&nbsp; cheap model first, expensive model only when it pays &nbsp;·&nbsp; <span id="ready">connecting…</span></div>
+    </div>
+    <div class="key"><label for="apikey">API key (production only)</label><input id="apikey" type="password" autocomplete="off" placeholder="x-api-key"></div>
+  </header>
+
+  <main class="grid">
+    <section class="card" aria-labelledby="h-sent">
+      <div class="kicker">No. 1 · Sentiment</div>
+      <h2 id="h-sent">Read the <em>tape.</em></h2>
+      <p class="lede">One tweet per line. A fast model answers; if it isn’t sure, the request is escalated to a fine-tuned LLM.</p>
+      <label class="f" for="tweets">Finance tweets</label>
+      <textarea id="tweets" spellcheck="false">$NVDA crushes earnings and raises guidance
+Fed leaves rates unchanged, as expected
+Regional bank shares tumble as loan losses mount
+Mixed signals: revenue up, margins squeezed, outlook unclear</textarea>
+      <div class="chips" id="chips"></div>
+      <label class="f" id="l-strat">Strategy</label>
+      <div class="seg" role="radiogroup" aria-labelledby="l-strat">
+        <input type="radio" name="strat" id="s-fast" value="fast"><label for="s-fast">Fast</label>
+        <input type="radio" name="strat" id="s-auto" value="auto" checked><label for="s-auto">Auto</label>
+        <input type="radio" name="strat" id="s-acc" value="accurate"><label for="s-acc">Accurate</label>
+      </div>
+      <div><button class="go" id="run-sent">Classify</button></div>
+      <div class="err" id="err-sent" role="alert"></div>
+      <div class="res" id="res-sent" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-cred">
+      <div class="kicker">No. 2 · Credit</div>
+      <h2 id="h-cred">Will they <em>pay?</em></h2>
+      <p class="lede">Describe a card account. Sex is never an input. Choose a model that is accurate, or one that can explain itself.</p>
+      <div class="two">
+        <div><label class="f" for="limit">Credit limit ($)</label><input id="limit" type="number" value="50000" min="1000" step="1000"></div>
+        <div><label class="f" for="age">Age</label><input id="age" type="number" value="38" min="18" max="100"></div>
+      </div>
+      <div class="sl"><label class="f" for="late" style="margin:14px 0 0">Months paid late (of last 6)</label><output id="o-late" style="margin-top:14px">0</output><input id="late" type="range" min="0" max="6" value="0"></div>
+      <div class="sl"><label class="f" for="worst" style="margin:6px 0 0">How late at worst (months)</label><output id="o-worst" style="margin-top:6px">1</output><input id="worst" type="range" min="1" max="4" value="1"></div>
+      <div class="sl"><label class="f" for="util" style="margin:6px 0 0">Credit utilisation</label><output id="o-util" style="margin-top:6px">30%</output><input id="util" type="range" min="0" max="120" value="30"></div>
+      <div class="sl"><label class="f" for="repay" style="margin:6px 0 0">Share of balance repaid monthly</label><output id="o-repay" style="margin-top:6px">20%</output><input id="repay" type="range" min="0" max="100" value="20"></div>
+      <label class="f" id="l-model">Model</label>
+      <div class="seg" role="radiogroup" aria-labelledby="l-model">
+        <input type="radio" name="cm" id="m-acc" value="accurate" checked><label for="m-acc">Accurate</label>
+        <input type="radio" name="cm" id="m-exp" value="explainable"><label for="m-exp">Explainable</label>
+      </div>
+      <div><button class="go" id="run-cred">Score account</button></div>
+      <div class="err" id="err-cred" role="alert"></div>
+      <div class="res" id="res-cred" aria-live="polite"></div>
+    </section>
+
+    <section class="card full" aria-labelledby="h-arena">
+      <div class="kicker">No. 3 · The Arena</div>
+      <h2 id="h-arena">Which model, <em>when?</em></h2>
+      <p class="lede">Measured on held-out data, not asserted. Drag the slider to see what routing buys you.</p>
+      <div class="cols" id="arena"><div class="cap">loading results…</div></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Decision support, not advice. The credit model is trained on one public 2005 dataset; validate on your own portfolio before use.</span>
+    <span><a href="/docs">API reference</a> · v<span id="ver">0.1.0</span></span>
+  </footer>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+const key = $('#apikey'); try { key.value = sessionStorage.getItem('fa-key') || ''; } catch (e) {}
+key.addEventListener('input', () => { try { sessionStorage.setItem('fa-key', key.value); } catch (e) {} boot(); });
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(key.value ? { 'x-api-key': key.value } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  let j = null; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    const d = j && j.detail;
+    const msg = r.status === 401 ? 'Missing or invalid API key — enter it at the top right.'
+      : Array.isArray(d) ? d.map(x => `${(x.loc || []).slice(-1)[0]}: ${x.msg}`).join(' · ')
+      : (typeof d === 'string' ? d : `Request failed (${r.status})`);
+    throw new Error(msg);
+  }
+  return j;
+}
+function fail(id, e) { const n = $(id); n.textContent = e.message; n.style.display = 'block'; }
+function busy(btn, on, label) { btn.disabled = on; btn.textContent = on ? 'Working…' : label; }
+
+/* ---------- sentiment ---------- */
+const SAMPLES = ['$TSLA recalls 400k vehicles, shares slide', 'Treasury yields steady ahead of jobs report', 'Buyback of $10B announced, stock pops after hours', 'Company says it may or may not meet targets'];
+SAMPLES.forEach(t => { const b = el('button', 'chip', t.length > 34 ? t.slice(0, 32) + '…' : t); b.type = 'button'; b.onclick = () => { const a = $('#tweets'); a.value = (a.value.trim() + '\n' + t).trim(); }; $('#chips').append(b); });
+$('#run-sent').onclick = async () => {
+  const btn = $('#run-sent'), out = $('#res-sent'); $('#err-sent').style.display = 'none';
+  const texts = $('#tweets').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!texts.length) return fail('#err-sent', new Error('Enter at least one tweet.'));
+  busy(btn, true, 'Classify');
+  try {
+    const r = await api('/v1/sentiment', { texts, strategy: document.querySelector('input[name=strat]:checked').value });
+    out.replaceChildren(); out.style.display = 'block';
+    r.results.forEach((x, i) => {
+      const row = el('div', 'row'); row.style.animationDelay = `${i * 70}ms`;
+      row.append(el('q', '', texts[i]));
+      const v = el('div', 'verdict');
+      v.append(el('span', 'lab ' + x.label, x.label), el('span', 'conf', Math.round(x.confidence * 100) + '%'), el('span', 'who' + (x.escalated ? ' llm' : ''), x.model));
+      if (x.escalated) v.append(el('span', 'stamp esc', 'Escalated → LLM'));
+      const bars = el('div', 'bars');
+      Object.entries(x.probabilities).forEach(([k, p]) => {
+        const b = el('div', 'bar'); const t = el('span', 't'); const f = el('i'); f.style.width = (p * 100) + '%'; t.append(f);
+        b.append(el('span', '', k), t, el('span', '', (p * 100).toFixed(0) + '%')); bars.append(b);
+      });
+      row.append(v, bars); out.append(row);
+    });
+    const s = el('div', 'cap', `${Math.round(r.escalated_fraction * 100)}% escalated · strategy: ${r.strategy}`); s.style.marginTop = '12px'; out.append(s);
+  } catch (e) { fail('#err-sent', e); } finally { busy(btn, false, 'Classify'); }
+};
+
+/* ---------- credit ---------- */
+[['late', v => v], ['worst', v => v], ['util', v => v + '%'], ['repay', v => v + '%']].forEach(([id, f]) => {
+  const i = $('#' + id), o = $('#o-' + id); const sync = () => { o.textContent = f(i.value); if (id === 'late') $('#worst').disabled = +i.value === 0; }; i.addEventListener('input', sync); sync();
+});
+function gauge(pd, thr) {
+  const R = 100, C = Math.PI * R, ang = a => Math.PI * (1 - a), pt = (a, r) => [120 + r * Math.cos(ang(a)), 120 - r * Math.sin(ang(a))];
+  const [tx1, ty1] = pt(thr, R - 14), [tx2, ty2] = pt(thr, R + 14);
+  const col = pd >= thr ? 'var(--bear)' : 'var(--bull)';
+  return `<svg class="gauge" viewBox="0 0 240 132" role="img" aria-label="Probability of default ${(pd * 100).toFixed(1)} percent">
+  <path d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke="rgba(21,18,15,.14)" stroke-width="16"/>
+  <path d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke="${col}" stroke-width="16" stroke-dasharray="${C}" stroke-dashoffset="${C}"><animate attributeName="stroke-dashoffset" from="${C}" to="${C * (1 - Math.min(pd, 1))}" dur=".9s" fill="freeze" calcMode="spline" keySplines=".2 .8 .2 1" keyTimes="0;1"/></path>
+  <line x1="${tx1}" y1="${ty1}" x2="${tx2}" y2="${ty2}" stroke="var(--ink)" stroke-width="3"/>  <text x="20" y="132">0%</text><text x="220" y="132" text-anchor="end">100%</text></svg>`;
+}
+$('#run-cred').onclick = async () => {
+  const btn = $('#run-cred'), out = $('#res-cred'); $('#err-cred').style.display = 'none';
+  const limit = +$('#limit').value, late = +$('#late').value, worst = +$('#worst').value, util = +$('#util').value / 100, repay = +$('#repay').value / 100;
+  const bill = Math.round(limit * util), app = { limit_bal: limit, education: 2, marriage: 1, age: +$('#age').value,
+    pay_status: Array.from({ length: 6 }, (_, i) => i < late ? worst : 0), bill_amt: Array(6).fill(bill), pay_amt: Array(6).fill(Math.round(bill * repay)) };
+  busy(btn, true, 'Score account');
+  try {
+    const r = await api('/v1/credit/score', { applications: [app], model: document.querySelector('input[name=cm]:checked').value });
+    const x = r.results[0]; out.replaceChildren(); out.style.display = 'block';
+    const g = el('div'); g.innerHTML = gauge(x.probability_of_default, r.threshold); out.append(g);
+    out.append(el('div', 'pd', (x.probability_of_default * 100).toFixed(1) + '%'));
+    const d = el('div'); d.style.cssText = 'text-align:center;margin:14px 0 4px';
+    d.append(el('span', 'stamp ' + (x.decision === 'decline' ? 'no' : 'ok'), x.decision), el('div', 'cap', `${x.model} · chance of default · decline line ${(r.threshold * 100).toFixed(0)}% (black tick)`)); out.append(d);
+    if (x.reason_codes && x.reason_codes.length) { const u = el('ul', 'codes'); x.reason_codes.forEach(c => u.append(el('li', '', c))); out.append(el('div', 'cap', 'Principal reasons'), u); }
+    else if (document.querySelector('input[name=cm]:checked').value === 'explainable') out.append(el('div', 'cap', 'No risk-raising factors found'));
+    const n = el('div', 'cap', r.cost_assumption); n.style.marginTop = '14px'; out.append(n);
+  } catch (e) { fail('#err-cred', e); } finally { busy(btn, false, 'Score account'); }
+};
+
+/* ---------- arena ---------- */
+function bars(rows, getV, max, fmt, bestIdx, lo = 0) {
+  const t = el('div', 'tbl');
+  rows.forEach((r, i) => { const m = el('div', 'mrow' + (i === bestIdx ? ' best' : '')); const tr = el('div', 'tr'); const f = el('i'); f.style.width = Math.max(2, (getV(r) - lo) / (max - lo) * 100) + '%'; tr.append(f);
+    m.append(el('div', 'nm', r.name), tr, el('div', 'val', fmt(r))); t.append(m); });
+  return t;
+}
+function renderArena(a) {
+  const root = $('#arena'); root.replaceChildren();
+  /* col 1: sentiment models */
+  const c1 = el('div'); c1.append(el('div', 'cap', 'Sentiment accuracy · ' + a.sentiment.dataset));
+  const sm = a.sentiment.models, best = sm.reduce((b, m, i) => m.accuracy > sm[b].accuracy ? i : b, 0);
+  c1.append(bars(sm, m => m.accuracy, 1, m => (m.accuracy * 100).toFixed(1) + '% · ' + m.latency_ms + 'ms', best, 0.5));
+  c1.append(el('div', 'cap', 'bars start at 50% accuracy; labels show accuracy · latency'));
+  const c = el('div', 'cap', 'Credit AUC · ' + a.credit.dataset); c.style.marginTop = '26px'; c1.append(c);
+  const cm = a.credit.models, cb = cm.reduce((b, m, i) => m.auc > cm[b].auc ? i : b, 0);
+  c1.append(bars(cm, m => m.auc, .8, m => m.auc.toFixed(3), cb, .7));
+  c1.append(el('div', 'cap', 'bars start at AUC 0.70'));
+  /* col 2: cascade */
+  const cur = a.sentiment.cascade, full = cur[cur.length - 1], c2 = el('div');
+  c2.append(el('div', 'cap', 'Routing: fast model → LLM'));
+  const big = el('div', 'big'); const bigSmall = el('small', '', 'accuracy at this setting'); big.append(el('span', '', ''), bigSmall); c2.append(big);
+  const st = el('div', 'stats'); const mk = l => { const d = el('div'); d.append(el('div', 'cap', l), el('div', '', '')); d.lastChild.style.cssText = 'font:600 18px var(--mono)'; st.append(d); return d.lastChild; };
+  const sEsc = mk('sent to LLM'), sLat = mk('avg latency'), sSave = mk('time saved'); c2.append(st);
+  const sl = el('input'); sl.type = 'range'; sl.min = 0; sl.max = cur.length - 1; sl.value = cur.findIndex(r => r.threshold === 0.8); sl.setAttribute('aria-label', 'Confidence threshold'); c2.append(sl);
+  const svgNS = 'http://www.w3.org/2000/svg', W = 300, H = 120, xs = r => 10 + r.avg_cost / full.avg_cost * (W - 20), ys = r => H - 12 - (r.accuracy - cur[0].accuracy + .01) / (full.accuracy - cur[0].accuracy + .02) * (H - 28);
+  const sv = document.createElementNS(svgNS, 'svg'); sv.setAttribute('viewBox', `0 0 ${W} ${H}`); sv.style.cssText = 'width:100%;margin-top:6px';
+  sv.innerHTML = `<polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${cur.map(r => xs(r) + ',' + ys(r)).join(' ')}"/><circle id="dot" r="6" fill="var(--accent)" stroke="var(--ink)" stroke-width="2"/><text x="10" y="${H - 1}">cheaper →  avg latency</text><text x="${W - 10}" y="10" text-anchor="end">↑ accuracy</text>`;
+  c2.append(sv);
+  const upd = () => { const r = cur[+sl.value]; big.firstChild.textContent = (r.accuracy * 100).toFixed(1) + '%'; sEsc.textContent = Math.round(r.escalated * 100) + '%'; sLat.textContent = r.avg_cost.toFixed(1) + ' ms';
+    sSave.textContent = Math.round((1 - r.avg_cost / full.avg_cost) * 100) + '%'; const d = sv.querySelector('#dot'); d.setAttribute('cx', xs(r)); d.setAttribute('cy', ys(r)); };
+  sl.addEventListener('input', upd); upd();
+  c2.append(el('div', 'cap', `always-LLM: ${(full.accuracy * 100).toFixed(1)}% at ${full.avg_cost.toFixed(0)} ms`));
+  /* col 3: trading */
+  const c3 = el('div'); c3.append(el('div', 'cap', 'Trading: mean Sharpe after costs · ' + a.trading.dataset));
+  const ts = a.trading.strategies.filter(s => !s.name.startsWith('CONTROL')), tb = ts.findIndex(s => s.name === 'buy & hold');
+  c3.append(bars(ts, s => s.sharpe_net, .7, s => s.sharpe_net.toFixed(2), tb, 0));
+  c3.append(el('div', 'verd', 'Nothing beat buy-and-hold. Learned models matched it before fees, then fell behind.'));
+  root.append(c1, c2, c3);
+}
+async function boot() {
+  try { const r = await api('/ready'); $('#ready').textContent = 'live · ' + Object.entries(r.models).filter(([, v]) => v).map(([k]) => k).join(' + '); } catch (e) { $('#ready').textContent = 'offline'; }
+  try { renderArena(await api('/v1/arena')); } catch (e) { $('#arena').replaceChildren(el('div', 'cap', 'Arena results unavailable: ' + e.message)); }
+}
+const FACTS = ['LoRA-tuned Qwen-0.5B <b>90.7%</b> accuracy', 'routing sends <b>37%</b> of tweets to the LLM', '<b>−63%</b> latency vs always-LLM at −0.4 pts', 'gradient boosting beats logistic regression by <b>+0.027 AUC</b>', 'buy &amp; hold Sharpe <b>0.65</b> — unbeaten', 'learned traders guess direction <b>51–52%</b> vs 52.7% “always up”', 'sex is never a model input'];
+$('#tape').innerHTML = (FACTS.map(f => f + '<i>◆</i>').join('')).repeat(2);
+boot();
+</script>
+</body>
+</html>

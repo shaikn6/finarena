@@ -1,0 +1,32 @@
+[project]
+name = "finarena"
+version = "0.1.0"
+description = "Fintech model arena: routed sentiment, explainable credit scoring, signature detection"
+requires-python = ">=3.10"
+dependencies = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "pydantic>=2.6", "scikit-learn>=1.4", "pandas>=2.0",
+                "numpy>=1.26", "joblib>=1.3", "python-multipart>=0.0.9"]
+
+[project.optional-dependencies]
+llm = ["torch>=2.2", "transformers>=4.45", "peft>=0.12"]
+signature = ["ultralytics>=8.3", "pillow"]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.5"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+finarena = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008", "B905", "E501"]
