@@ -14,12 +14,14 @@ from fastapi.responses import FileResponse, JSONResponse
 from finarena import __version__
 from finarena.auth import require_api_key
 from finarena.config import Settings
+from finarena.limits import RateLimiter
 from finarena.models.concurrency import ModelBusy
 from finarena.schemas import CreditRequest, CreditResponse, SentimentRequest, SentimentResponse, SignatureResponse
 
 log = logging.getLogger("finarena")
 COST_ASSUMPTION = "threshold minimises expected cost with a missed default costing 5x a wrongly declined good borrower"
 IMAGE_TYPES = {"image/jpeg", "image/png"}
+BODY_OVERHEAD = 64 * 1024  # headroom over the image limit for multipart framing and JSON bodies
 STATIC = Path(__file__).parent / "static"
 
 
@@ -41,13 +43,43 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
     app = FastAPI(title="FinArena", version=__version__, lifespan=lifespan,
                   description="Fintech model arena: routed sentiment, explainable credit scoring, signature detection.")
     app.state.settings, app.state.registry = settings, registry
+    limiter = app.state.limiter = RateLimiter(settings.rate_per_minute)
+    body_cap = settings.max_image_bytes + BODY_OVERHEAD
+
+    def client_key(request):
+        """A configured API key gets its own budget; anything else (missing or made-up keys) is counted by IP,
+        so rotating random key values cannot be used to dodge the limit or to bloat the limiter's memory."""
+        key = request.headers.get("x-api-key")
+        if key and key in settings.api_keys:
+            return f"key:{key}"
+        return f"ip:{request.client.host if request.client else 'unknown'}"
+
+    def reject(request):
+        """Early rejection for API calls: the per-client rate limit first (so oversized probes are not free), then the
+        body-size cap. The cap trusts the declared Content-Length, which the HTTP server enforces, so POSTs that do
+        not declare one (chunked uploads) are refused rather than read without a bound."""
+        if not request.url.path.startswith("/v1/"):
+            return None
+        allowed, retry = limiter.check(client_key(request))
+        if not allowed:
+            return JSONResponse({"detail": "rate limit exceeded"}, status_code=429, headers={"Retry-After": str(max(1, round(retry)))})
+        declared = request.headers.get("content-length")
+        if declared is None:
+            return JSONResponse({"detail": "Content-Length required"}, status_code=411) if request.method == "POST" else None
+        if not declared.isdigit():
+            return JSONResponse({"detail": "invalid Content-Length"}, status_code=400)
+        if int(declared) > body_cap:
+            return JSONResponse({"detail": f"request body too large (max {body_cap} bytes)"}, status_code=413)
+        return None
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
         rid = request.headers.get("x-request-id") or uuid.uuid4().hex[:16]
         t = time.perf_counter()
         try:
-            response = await call_next(request)
+            response = reject(request)
+            if response is None:
+                response = await call_next(request)
         except Exception:
             log.exception("unhandled error rid=%s path=%s", rid, request.url.path)
             response = JSONResponse({"detail": "internal error", "request_id": rid}, status_code=500)

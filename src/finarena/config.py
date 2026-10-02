@@ -21,6 +21,7 @@ class Settings:
     enable_signature: bool = False
     model_wait_seconds: float = 20.0
     require_llm: bool = False
+    rate_per_minute: int = 120  # per client; 0 disables
 
     @classmethod
     def from_env(cls):
@@ -35,4 +36,5 @@ class Settings:
                    enable_llm=os.environ.get("FINARENA_ENABLE_LLM", "1") == "1",
                    enable_signature=os.environ.get("FINARENA_ENABLE_SIGNATURE", "0") == "1",
                    model_wait_seconds=float(os.environ.get("FINARENA_MODEL_WAIT_SECONDS", "20")),
-                   require_llm=os.environ.get("FINARENA_REQUIRE_LLM", "0") == "1")
+                   require_llm=os.environ.get("FINARENA_REQUIRE_LLM", "0") == "1",
+                   rate_per_minute=_int("FINARENA_RATE_PER_MINUTE", 120))
