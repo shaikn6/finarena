@@ -31,7 +31,10 @@ docker compose up -d --build
 curl localhost:8000/ready          # {"status":"ready", ...}
 ```
 
-The container is read-only, drops all Linux capabilities, runs as a non-root user and has a health check.
+The container is read-only, drops all Linux capabilities, runs as a non-root user and has a health check. The port is
+published on `127.0.0.1` only, which is what you want when a reverse proxy runs on the same host. If the proxy is on another
+machine, set `BIND` in `.env` to this host's private interface address (`0.0.0.0` listens on every interface, so only use
+it behind a firewall or TLS proxy: FinArena itself speaks plain HTTP).
 
 ## 4. Put it behind TLS
 
@@ -59,7 +62,7 @@ scrape_configs:
 ```
 
 `/metrics` is deliberately outside the rate limiter (a scraper hits it every few seconds); keep it on an internal
-network and do not expose it publicly. Useful alerts: 5xx rate above 1% for 5 minutes; p95 of
+network (for example `BIND` to a private address) and do not expose it publicly. Useful alerts: 5xx rate above 1% for 5 minutes; p95 of
 `finarena_request_duration_ms` above your target; `rate(finarena_model_busy_total[5m]) > 0` (the LLM is saturated, add
 replicas); the escalation fraction (`escalated / items`) drifting away from its usual level (the input mix changed).
 

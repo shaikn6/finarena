@@ -8,7 +8,7 @@ services:
         PRELOAD_LLM: ${PRELOAD_LLM:-0}
     image: finarena:${IMAGE_TAG:-latest}
     ports:
-      - "${PORT:-8000}:8000"
+      - "${BIND:-127.0.0.1}:${PORT:-8000}:8000"  # loopback by default; see docs/DEPLOY.md to expose it
     env_file: .env
     restart: unless-stopped
     read_only: true            # the service writes nothing to disk

@@ -33,7 +33,7 @@ Production requires keys, otherwise the service refuses to start:
 
 ```bash
 export FINARENA_API_KEYS=key-one,key-two
-docker build -t finarena . && docker run -p 8000:8000 -e FINARENA_API_KEYS=$FINARENA_API_KEYS finarena
+docker build -t finarena . && docker run -p 127.0.0.1:8000:8000 -e FINARENA_API_KEYS=$FINARENA_API_KEYS finarena
 curl -H "x-api-key: key-one" -H "content-type: application/json" localhost:8000/v1/sentiment \
   -d '{"texts": ["$TSLA beats earnings, stock jumps"], "strategy": "auto"}'
 ```
