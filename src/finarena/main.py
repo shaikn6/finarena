@@ -9,14 +9,24 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from finarena import __version__
-from finarena.auth import require_api_key
+from finarena.auth import presented_key, require_api_key
 from finarena.config import Settings
+from finarena.dispatch import Unavailable, analyze, run_credit, run_sentiment, text_too_long_message
 from finarena.limits import RateLimiter
+from finarena.metrics import Metrics
 from finarena.models.concurrency import ModelBusy
-from finarena.schemas import CreditRequest, CreditResponse, SentimentRequest, SentimentResponse, SignatureResponse
+from finarena.schemas import (
+    AnalyzeRequest,
+    AnalyzeResponse,
+    CreditRequest,
+    CreditResponse,
+    SentimentRequest,
+    SentimentResponse,
+    SignatureResponse,
+)
 
 log = logging.getLogger("finarena")
 COST_ASSUMPTION = "threshold minimises expected cost with a missed default costing 5x a wrongly declined good borrower"
@@ -44,12 +54,13 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
                   description="Fintech model arena: routed sentiment, explainable credit scoring, signature detection.")
     app.state.settings, app.state.registry = settings, registry
     limiter = app.state.limiter = RateLimiter(settings.rate_per_minute)
+    metrics = app.state.metrics = Metrics()
     body_cap = settings.max_image_bytes + BODY_OVERHEAD
 
     def client_key(request):
         """A configured API key gets its own budget; anything else (missing or made-up keys) is counted by IP,
         so rotating random key values cannot be used to dodge the limit or to bloat the limiter's memory."""
-        key = request.headers.get("x-api-key")
+        key = presented_key(request)
         if key and key in settings.api_keys:
             return f"key:{key}"
         return f"ip:{request.client.host if request.client else 'unknown'}"
@@ -84,9 +95,16 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
             log.exception("unhandled error rid=%s path=%s", rid, request.url.path)
             response = JSONResponse({"detail": "internal error", "request_id": rid}, status_code=500)
         ms = (time.perf_counter() - t) * 1e3
+        metrics.observe_request(getattr(request.scope.get("route"), "path", "unrouted"), request.method, response.status_code, ms)
+        if response.status_code == 429:
+            metrics.inc("finarena_rate_limited_total")
         response.headers["x-request-id"], response.headers["x-process-time-ms"] = rid, f"{ms:.1f}"
         log.info(json.dumps(dict(rid=rid, method=request.method, path=request.url.path, status=response.status_code, ms=round(ms, 1))))
         return response
+
+    def count_sentiment(predictions):
+        metrics.inc("finarena_sentiment_items_total", len(predictions))
+        metrics.inc("finarena_sentiment_escalated_total", sum(p["escalated"] for p in predictions))
 
     def check_batch(n):
         if n > settings.max_batch:
@@ -104,6 +122,7 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
 
     @app.exception_handler(ModelBusy)
     async def model_busy(request: Request, exc: ModelBusy):
+        metrics.inc("finarena_model_busy_total")
         return JSONResponse({"detail": str(exc)}, status_code=503, headers={"Retry-After": "2"})
 
     @app.get("/health")
@@ -125,25 +144,37 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
 
     @app.post("/v1/sentiment", response_model=SentimentResponse, dependencies=[Depends(require_api_key)])
     def sentiment(req: SentimentRequest):
-        if registry.sentiment is None:
-            raise HTTPException(503, "sentiment models not loaded")
         check_batch(len(req.texts))
         if any(len(t) > settings.max_text_chars for t in req.texts):
-            raise HTTPException(413, f"text too long (max {settings.max_text_chars} chars)")
+            raise HTTPException(413, text_too_long_message(settings))
         try:
-            results = registry.sentiment.predict(req.texts, req.strategy)
-        except LookupError as e:
+            results = run_sentiment(registry, req.texts, req.strategy)
+        except Unavailable as e:
             raise HTTPException(503, str(e)) from e
+        count_sentiment(results)
         return SentimentResponse(results=results, strategy=req.strategy,
                                  escalated_fraction=sum(r["escalated"] for r in results) / len(results))
 
     @app.post("/v1/credit/score", response_model=CreditResponse, dependencies=[Depends(require_api_key)])
     def credit(req: CreditRequest):
-        if registry.credit is None:
-            raise HTTPException(503, "credit model not loaded")
         check_batch(len(req.applications))
-        return CreditResponse(results=registry.credit.score(req.applications, req.model),
-                              threshold=registry.credit.threshold, cost_assumption=COST_ASSUMPTION)
+        try:
+            results = run_credit(registry, req.applications, req.model)
+        except Unavailable as e:
+            raise HTTPException(503, str(e)) from e
+        return CreditResponse(results=results, threshold=registry.credit.threshold, cost_assumption=COST_ASSUMPTION)
+
+    @app.post("/v1/analyze", response_model=AnalyzeResponse, dependencies=[Depends(require_api_key)])
+    def analyze_mixed(req: AnalyzeRequest):
+        """One entry point for mixed workloads: each item is routed to its specialist model; failures are per item."""
+        check_batch(len(req.items))
+        results = analyze(req.items, registry, settings, req.sentiment_strategy, req.credit_model, metrics)
+        count_sentiment([r["result"] for r in results if r["task"] == "sentiment" and r["ok"]])
+        return AnalyzeResponse(results=results)
+
+    @app.get("/metrics", include_in_schema=False, dependencies=[Depends(require_api_key)])
+    def prometheus_metrics():
+        return PlainTextResponse(metrics.render(), media_type="text/plain; version=0.0.4")
 
     @app.post("/v1/signature/detect", response_model=SignatureResponse, dependencies=[Depends(require_api_key)])
     async def signature(file: UploadFile = File(...)):

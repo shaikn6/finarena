@@ -26,10 +26,13 @@ def load_registry(s: Settings) -> Registry:
         if s.enable_llm and (d / "sentiment_lora").exists():
             try:
                 accurate = Serialized(LLMModel(BASE_LLM, d / "sentiment_lora"), s.model_wait_seconds)
-            except Exception:
+            except Exception as e:
                 if s.require_llm:
                     raise
-                log.exception("LLM sentiment model failed to load; serving fast model only")
+                if isinstance(e, ImportError):  # expected on the base image: one line, not a traceback
+                    log.warning("LLM sentiment disabled: torch/transformers/peft are not installed (use the [llm] image); serving fast model only")
+                else:
+                    log.exception("LLM sentiment model failed to load; serving fast model only")
         reg.sentiment = SentimentService(fast, accurate, s.cascade_threshold)
     if s.enable_signature and (d / "signature.pt").exists():
         from finarena.models.signature import SignatureDetector

@@ -8,7 +8,9 @@ between a cheap model and an accurate one so most requests never pay for the exp
 | `POST /v1/sentiment` | Bearish / Bullish / Neutral for financial news text | TF-IDF + logistic regression (fast) and Qwen2.5-0.5B + LoRA (accurate), with a confidence cascade |
 | `POST /v1/credit/score` | Probability of default and approve / decline | Gradient boosting (accurate) or logistic regression with plain-language reason codes (explainable) |
 | `POST /v1/signature/detect` | Finds signatures in document images | YOLO11n (optional extra, see Licensing) |
+| `POST /v1/analyze` | One entry point for mixed workloads: send sentiment and credit items together, each is routed to its specialist; items of one kind share a single model call and a failure affects only its own items | all of the above |
 | `GET /v1/models` | Model cards with measured metrics | |
+| `GET /metrics` | Prometheus metrics: requests by route and status, latency histogram, rate-limited, model-busy and escalation counters | |
 | `GET /health`, `GET /ready` | Liveness and readiness | |
 
 A browser interface is served at `/` (try the sentiment router, score a credit account, and drag the routing slider
@@ -23,6 +25,9 @@ make install && make train        # trains the credit model (downloads the publi
 python scripts/train_sentiment.py # builds the fast sentiment model; pass an adapter dir to add the LLM
 FINARENA_ENV=dev make run         # auth disabled for local use only
 ```
+
+Or with Docker Compose (read-only filesystem, non-root, health check): `cp .env.example .env`, set your keys, then
+`docker compose up -d --build`. See [docs/DEPLOY.md](docs/DEPLOY.md) for sizing, TLS, monitoring and rollback.
 
 Production requires keys, otherwise the service refuses to start:
 
@@ -79,7 +84,7 @@ All settings are environment variables, read once at startup.
 | Variable | Default | Meaning |
 |---|---|---|
 | `FINARENA_ENV` | `prod` | `prod` refuses to start without API keys; `dev` disables auth (local use only) |
-| `FINARENA_API_KEYS` | none | Comma-separated keys accepted in the `x-api-key` header |
+| `FINARENA_API_KEYS` | none | Comma-separated keys, sent as `x-api-key: <key>` or `Authorization: Bearer <key>` |
 | `FINARENA_ARTIFACT_DIR` | `artifacts` | Where model files and results are loaded from |
 | `FINARENA_RATE_PER_MINUTE` | `120` | Requests per minute per client (API key, else IP) on `/v1/*`; bursts up to this size; `0` disables. Over the limit: `429` with `Retry-After`. Health, readiness and the UI are never limited. Per process. |
 | `FINARENA_MAX_BATCH` | `64` | Items per request (`413` above) |

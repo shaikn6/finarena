@@ -111,3 +111,15 @@ def test_model_busy_returns_503_with_retry_after(make_client):
 def test_ready_reports_whether_the_llm_loaded(make_client):
     assert make_client(with_llm=True).get("/ready").json()["models"]["sentiment_llm"] is True
     assert make_client(with_llm=False).get("/ready").json()["models"]["sentiment_llm"] is False
+
+
+def test_authorization_bearer_is_accepted_like_x_api_key(make_client):
+    c = make_client()
+    ok = {"authorization": "Bearer secret"}
+    assert c.post("/v1/sentiment", json={"texts": ["a"]}, headers=ok).status_code == 200
+    assert c.get("/metrics", headers=ok).status_code == 200  # what a Prometheus `authorization:` block sends
+
+
+@pytest.mark.parametrize("header", ["Bearer wrong", "Basic secret", "Bearer", "secret"])
+def test_wrong_or_malformed_authorization_header_is_401(make_client, header):
+    assert make_client().get("/v1/models", headers={"authorization": header}).status_code == 401

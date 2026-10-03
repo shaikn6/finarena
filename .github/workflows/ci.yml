@@ -31,6 +31,9 @@ jobs:
             -d '{"texts":["Shares plunge after SEC probe"],"strategy":"fast"}' | grep -q Bearish
           curl -sf -X POST localhost:8000/v1/credit/score -H 'x-api-key: ci-key' -H 'content-type: application/json' \
             -d '{"applications":[{"limit_bal":50000,"education":2,"marriage":1,"age":35,"pay_status":[3,3,2,2,2,2],"bill_amt":[48000,48000,48000,48000,48000,48000],"pay_amt":[0,0,0,0,0,0]}]}' | grep -q decline
+          curl -sf -X POST localhost:8000/v1/analyze -H 'x-api-key: ci-key' -H 'content-type: application/json' \
+            -d '{"items":[{"task":"sentiment","text":"Shares plunge after SEC probe"}]}' | grep -q Bearish
+          curl -sf localhost:8000/metrics -H 'x-api-key: ci-key' | grep -q finarena_requests_total
           test "$(docker exec fa id -u)" = "10001"
       - if: failure()
         run: docker logs fa

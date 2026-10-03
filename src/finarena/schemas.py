@@ -1,23 +1,25 @@
 """Request/response contracts. Validation lives here so handlers only see well-formed data."""
 from typing import Annotated, Literal, get_args
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field
 
 Strategy = Literal["fast", "accurate", "auto"]
 Label = Literal["Bearish", "Bullish", "Neutral"]
 SENTIMENT_LABELS = get_args(Label)
 
 
-class SentimentRequest(BaseModel):
-    texts: list[str] = Field(min_length=1)
-    strategy: Strategy = "auto"
+def _not_blank(v):
+    if not v.strip():
+        raise ValueError("must not be blank")
+    return v
 
-    @field_validator("texts")
-    @classmethod
-    def non_blank(cls, v):
-        if any(not t.strip() for t in v):
-            raise ValueError("texts must not contain blank strings")
-        return v
+
+NonBlankStr = Annotated[str, AfterValidator(_not_blank)]
+
+
+class SentimentRequest(BaseModel):
+    texts: list[NonBlankStr] = Field(min_length=1)
+    strategy: Strategy = "auto"
 
 
 class SentimentItem(BaseModel):
@@ -72,3 +74,30 @@ class SignatureResponse(BaseModel):
     detections: list[Detection]
     image_width: int
     image_height: int
+
+
+class SentimentTask(BaseModel):
+    task: Literal["sentiment"]
+    text: NonBlankStr
+
+
+class CreditTask(BaseModel):
+    task: Literal["credit"]
+    application: CreditApplication
+
+
+class AnalyzeRequest(BaseModel):
+    items: list[Annotated[SentimentTask | CreditTask, Field(discriminator="task")]] = Field(min_length=1)
+    sentiment_strategy: Strategy = "auto"
+    credit_model: Literal["accurate", "explainable"] = "accurate"
+
+
+class AnalyzeResult(BaseModel):
+    task: Literal["sentiment", "credit"]
+    ok: bool
+    result: dict | None = None
+    error: str | None = None
+
+
+class AnalyzeResponse(BaseModel):
+    results: list[AnalyzeResult]

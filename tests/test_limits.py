@@ -121,3 +121,10 @@ def test_oversized_probes_spend_rate_limit_tokens(make_client):
     big = b"x" * 70_000
     codes = [c.post("/v1/sentiment", content=big, headers={**H, "content-type": "application/json"}).status_code for _ in range(4)]
     assert codes == [413, 413, 429, 429]
+
+
+def test_a_valid_bearer_key_gets_its_own_budget_like_x_api_key(make_client):
+    c = make_client(keys=("k1", "k2"), rate_per_minute=1)
+    assert c.post("/v1/sentiment", json={"texts": ["a"]}, headers={"authorization": "Bearer k1"}).status_code == 200
+    assert c.post("/v1/sentiment", json={"texts": ["a"]}, headers={"authorization": "Bearer k1"}).status_code == 429
+    assert c.post("/v1/sentiment", json={"texts": ["a"]}, headers={"x-api-key": "k2"}).status_code == 200
