@@ -9,7 +9,8 @@ import httpx
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
 N, CONC = int(sys.argv[2]) if len(sys.argv) > 2 else 60, int(sys.argv[3]) if len(sys.argv) > 3 else 8
 TEXTS = ["$NVDA crushes earnings and raises guidance", "Fed leaves rates unchanged", "Bank shares tumble as losses mount",
-         "Mixed signals: revenue up, margins squeezed, outlook unclear", "Company says it may or may not meet targets"]
+         "Mixed signals: revenue up, margins squeezed, outlook unclear", "Company says it may or may not meet targets",
+         "Offshore operator signs a non-binding letter of intent to lease a floating storage unit for up to 11 years, which could cut operating costs by 15-25% versus its current contract, though maintaining or replacing the existing vessel would still require substantial capital investment over the next several quarters. " * 2]
 APP = {"limit_bal": 50000, "education": 2, "marriage": 1, "age": 35, "pay_status": [2, 2, 1, 0, 0, 0],
        "bill_amt": [30000] * 6, "pay_amt": [500] * 6}
 
@@ -44,7 +45,7 @@ async def bench(name, path, make_body):
 
 async def main():
     for strategy in ("fast", "auto", "accurate"):
-        await bench(f"sentiment {strategy}", "/v1/sentiment", lambda i, s=strategy: {"texts": [TEXTS[i % 5]], "strategy": s})
+        await bench(f"sentiment {strategy}", "/v1/sentiment", lambda i, s=strategy: {"texts": [TEXTS[i % 6]], "strategy": s})
     await bench("credit accurate", "/v1/credit/score", lambda i: {"applications": [APP], "model": "accurate"})
 
 asyncio.run(main())

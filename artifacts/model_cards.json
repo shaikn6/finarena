@@ -7,38 +7,41 @@
     "sex_used_as_feature": false
   },
   "sentiment": {
-    "data": "zeroshot/twitter-financial-news-sentiment; test = official validation split (2,388)",
-    "tfidf_accuracy": 0.8321,
-    "tfidf_macro_f1": 0.7581,
+    "data": "trained on NOSIBLE news snippets, tweets and manually labeled headlines; tested on 3 held-out sets",
     "benchmark": {
-      "tfidf+logreg": {
-        "accuracy": 0.8279,
-        "macro_f1": 0.7459,
-        "latency_ms_p50": 0.2
+      "TF-IDF + logistic regression": {
+        "tweets": 0.7584,
+        "headlines (manual labels)": 0.7341,
+        "news snippets (NOSIBLE)": 0.7165
       },
-      "finbert (zero-shot)": {
-        "accuracy": 0.7253,
-        "macro_f1": 0.6682,
-        "latency_ms_p50": 10.9
+      "FinBERT (zero-shot)": {
+        "tweets": 0.7253,
+        "headlines (manual labels)": 0.7116,
+        "news snippets (NOSIBLE)": 0.7355
       },
-      "qwen2.5-0.5b zero-shot": {
-        "accuracy": 0.6558,
-        "macro_f1": 0.3098,
-        "latency_ms_p50": 58.4
+      "Qwen2.5-0.5B + LoRA, tweets only (previous)": {
+        "tweets": 0.9066,
+        "headlines (manual labels)": 0.618,
+        "news snippets (NOSIBLE)": 0.5895
       },
-      "qwen2.5-0.5b + LoRA": {
-        "accuracy": 0.907,
-        "macro_f1": 0.8796,
-        "latency_ms_p50": 74.3
+      "Qwen2.5-0.5B + LoRA, news + tweets": {
+        "tweets": 0.866,
+        "headlines (manual labels)": 0.7678,
+        "news snippets (NOSIBLE)": 0.8465
       }
     },
-    "cascade_at_0_8": {
+    "cascade_threshold": 0.8,
+    "cascade": {
       "threshold": 0.8,
-      "escalated": 0.36976549413735343,
-      "accuracy": 0.9032663316582915,
-      "avg_cost": 27.673576214405358
+      "escalated": 0.593,
+      "accuracy": 0.8203,
+      "avg_cost": 59.2
     },
-    "note": "LoRA: Qwen2.5-0.5B-Instruct, 1 epoch on 8,588 tweets; latency measured batch-size-1 on Apple MPS"
+    "latency_ms": {
+      "tfidf": 0.3,
+      "llm": 99.4,
+      "finbert": 13.9
+    }
   },
   "api_verification_400_tweets": {
     "fast": {

@@ -69,13 +69,25 @@ values the running service reports.
 
 - **Credit:** gradient boosting test AUC 0.774 vs logistic regression 0.746 (paired bootstrap difference +0.027,
   95% CI [0.019, 0.036]) on 30,000 accounts. Adding more models or segment specialists gave no significant gain.
-- **Sentiment** (2,388 held-out tweets): TF-IDF + logistic regression 82.8% accuracy / 0.746 macro-F1 (0.2 ms);
-  FinBERT zero-shot 72.5% / 0.668; Qwen2.5-0.5B zero-shot 65.6% / 0.310; **Qwen2.5-0.5B + LoRA 90.7% / 0.880 (74 ms)**.
-  The cascade at threshold 0.8 reaches 90.3% while escalating 37% of requests, about 63% lower average latency than
-  always using the LLM. The same numbers were re-measured through this API on 400 tweets (fast 82.8%, auto 90.8% with
-  36% escalated, 2.3x faster than accurate). The LoRA model is supervised in-domain and the zero-shot rows are not,
-  so the fair comparison for the LoRA gain is the TF-IDF row (+7.9 points accuracy, +0.134 macro-F1).
-  Latency is batch-size-1 on Apple MPS and will differ on other hardware.
+- **Sentiment**, accuracy on three held-out sets (full details and code in [fin-lora](https://github.com/shaikn6/fin-lora)):
+
+  | Model | Tweets (2,388) | Manual headlines (267) | News snippets (2,000) |
+  |---|---|---|---|
+  | TF-IDF + logistic regression (fast tier) | 75.8% | 73.4% | 71.7% |
+  | FinBERT, zero-shot | 72.5% | 71.2% | 73.6% |
+  | Qwen2.5-0.5B + LoRA, tweets only (the previous version) | 90.7% | 61.8% | 59.0% |
+  | **Qwen2.5-0.5B + LoRA, news + tweets (accurate tier)** | 86.6% | **76.8%** | **84.7%** |
+
+  How to read it: the tweets-only model was excellent on tweets and poor on news, which is why the current model was
+  retrained on news. The headline set is the independent test (labels written by people, never trained on), but it has
+  only 267 examples, so the margin of error is about 5 points and the LoRA model's lead there is **not statistically
+  proven**; it also contains just 12 negative headlines, so negative-class results are unreliable. The snippet labels
+  were produced by an LLM ensemble (NOSIBLE), and the model was trained on the same kind of labels, so its 84.7% there
+  overstates how it would do against human judgement. The same numbers were re-measured through this API: on the manual
+  headlines the accurate path scores 76.8%, the fast path 73.4%, and `auto` 77.2% while escalating 52% of requests.
+  Escalation threshold 0.8 was chosen on dev data only: on the test sets the cascade lands about 1 point from always using
+  the LLM (0.4 to 1.0) while sending 52% (headlines), 56% (tweets) and 70% (news snippets) of requests to it. Latency is batch-size-1
+  on Apple MPS and will differ elsewhere.
 
 ## Configuration
 
@@ -88,7 +100,7 @@ All settings are environment variables, read once at startup.
 | `FINARENA_ARTIFACT_DIR` | `artifacts` | Where model files and results are loaded from |
 | `FINARENA_RATE_PER_MINUTE` | `120` | Requests per minute per client (API key, else IP) on `/v1/*`; bursts up to this size; `0` disables. Over the limit: `429` with `Retry-After`. Health, readiness and the UI are never limited. Per process. |
 | `FINARENA_MAX_BATCH` | `64` | Items per request (`413` above) |
-| `FINARENA_MAX_TEXT_CHARS` | `512` | Characters per tweet |
+| `FINARENA_MAX_TEXT_CHARS` | `2000` | Characters per text (tweet, headline or news snippet). The LLM reads a 256-token window: longer text is trimmed, never the prompt |
 | `FINARENA_MAX_IMAGE_BYTES` | `10485760` | Largest image; any request body over this plus 64 KiB is refused with `413` before it is read; POSTs without a `Content-Length` (chunked uploads) get `411` |
 | `FINARENA_CASCADE_THRESHOLD` | `0.8` | Confidence below which `auto` escalates to the LLM |
 | `FINARENA_ENABLE_LLM` / `FINARENA_REQUIRE_LLM` | `1` / `0` | Load the LLM; refuse to start if it cannot load |
@@ -98,18 +110,37 @@ All settings are environment variables, read once at startup.
 Rate limiting keys on the API key when one is sent, otherwise on the client IP. Behind a reverse proxy the IP is the
 proxy's, so either rely on API keys or start uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy address>`.
 
+## Updating the sentiment model
+
+The model, its fast tier and the benchmarks come from [fin-lora](https://github.com/shaikn6/fin-lora). To retrain and ship a
+new version:
+
+```bash
+# in fin-lora: train, evaluate, then export what the API needs
+python train_news.py Qwen/Qwen2.5-0.5B-Instruct news-0.5b && python eval_news.py ... && python export_for_finarena.py
+# in finarena: install it (checks everything first, then swaps atomically), refresh the arena data, run the tests
+python scripts/import_sentiment.py ~/fin-lora && python scripts/build_arena.py && pytest
+```
+
+The adapter ships with a `prompt.json` (the exact prompt template and token window it was trained with) and the API
+reads its prompt from there, so serving cannot drift from training. An adapter without that file refuses to load.
+
 ## Capacity (measured, one process, Apple M-series laptop, 8 concurrent clients, 60 requests each)
 
 | Path | Throughput | p50 | p95 | Errors |
 |---|---|---|---|---|
-| sentiment `fast` | 547 req/s | 7 ms | 49 ms | 0 |
-| sentiment `auto` (cascade) | 26 req/s | 10 ms | 889 ms | 0 |
-| sentiment `accurate` (LLM only) | 14 req/s | 581 ms | 604 ms | 0 |
-| credit score | 51 req/s | 139 ms | 200 ms | 0 |
+| sentiment `fast` | 480 req/s | 7 ms | 59 ms | 0 |
+| sentiment `auto` (cascade) | 18 req/s | 506 ms | 1122 ms | 0 |
+| sentiment `accurate` (LLM only) | 17 req/s | 448 ms | 503 ms | 0 |
+| credit score | 57 req/s | 124 ms | 208 ms | 0 |
 
-In the Docker image (CPU only, 4 concurrent clients, 40 requests each, ~3 GB RAM): fast 459 req/s, credit 56 req/s,
-auto 5.1 req/s (p95 2.0 s), accurate 2.1 req/s (p50 1.9 s), 0 errors, 0 restarts. The accurate path is about 7x
-slower on CPU than on an Apple GPU, which is why the cascade matters: it keeps most traffic off the LLM.
+Inputs mix tweets, headlines and news-length snippets. On this mix `auto` is no faster than `accurate`: the fast model
+is rarely confident about news, so most requests escalate (about 52-70% on the test sets). The cascade saves real
+work on easy text such as tweets, much less on news.
+
+In the Docker image (CPU only, 4 concurrent clients, 40 requests each, ~2.6 GB RAM): fast 429 req/s, credit 64 req/s,
+auto 4.5 req/s (p50 1.3 s), accurate 3.3 req/s (p50 1.3 s), 0 errors, 0 restarts. The accurate path is about 5x
+slower on CPU than on an Apple GPU.
 
 The LLM runs one request at a time (torch on Apple's GPU aborts the process if two threads use it at once; this was
 found by this very load test, which killed the first version of the server). Callers wait up to
@@ -123,7 +154,9 @@ otherwise the rate limit (below) will answer most of the requests with `429`.
 - The credit model is trained on one public 2005 Taiwanese dataset. Before lending decisions it must be retrained
   and validated on your own portfolio, with your own fair-lending and model-risk review (e.g. SR 11-7 / ECOA).
   Outputs are decision support, not adverse-action notices.
-- Sentiment is trained on English finance tweets; news articles and other languages are out of distribution.
+- Sentiment is trained on English finance tweets, press-release headlines and news snippets. Other languages are out of
+  distribution, texts are trimmed to fit a 256-token window (the beginning is kept), and the model is weakest on negative news headlines (rare
+  in the only human-labeled test set).
 - Rate limits are per process (see Configuration) and there is no persistence; behind several replicas, also enforce limits at the gateway.
 
 ## Licensing
@@ -133,8 +166,11 @@ uses `ultralytics` and a dataset that are AGPL-3.0.** Enabling it in a closed-so
 either open-sourcing that product under AGPL-3.0 or buying an Ultralytics commercial licence. It is an optional
 extra (`pip install ".[signature]"`, `FINARENA_ENABLE_SIGNATURE=1`) and is off by default.
 
-Qwen2.5-0.5B-Instruct is Apache-2.0. Datasets: UCI credit default (CC BY 4.0), `zeroshot/twitter-financial-news-sentiment`
-(check its card for current terms before commercial use).
+Qwen2.5-0.5B-Instruct is Apache-2.0. Datasets: UCI credit default (CC BY 4.0); for sentiment,
+`zeroshot/twitter-financial-news-sentiment` (MIT), `Jean-Baptiste/financial_news_sentiment` (MIT) and
+[NOSIBLE/financial-sentiment](https://huggingface.co/datasets/NOSIBLE/financial-sentiment) (ODC-By: credit to NOSIBLE).
+**Before selling the sentiment model, have counsel review the NOSIBLE data**: its labels were generated by LLMs from
+several vendors (their terms may restrict training on outputs) and its text is scraped from public news sites.
 
 ## Companion projects
 

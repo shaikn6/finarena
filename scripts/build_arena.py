@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 home = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home()
-sent = json.loads((home / "fin-lora/arena.json").read_text())
+sent = json.loads((home / "fin-lora/exports/arena_sentiment.json").read_text())
 credit = json.loads((home / "credit-arena/results.json").read_text())
 trade = json.loads((home / "trade-arena/results.json").read_text())["per_asset"]
 
@@ -14,10 +14,10 @@ assets = list(trade)
 strategies = list(trade[assets[0]])
 arena = {
     "sentiment": {
-        "dataset": "2,388 held-out finance tweets",
-        "models": [{"name": k, "accuracy": v["accuracy"], "macro_f1": v["macro_f1"], "latency_ms": v["latency_ms_p50"]}
-                   for k, v in sent["models"].items()],
-        "cascade": [{k: r[k] for k in ("threshold", "escalated", "accuracy", "avg_cost")} for r in sent["cascade"]["curve"]],
+        "dataset": sent["dataset"],
+        "models": [{"name": m["name"], "accuracy": m["accuracy"], "latency_ms": m["latency_ms"],
+                    "detail": " · ".join(f"{k.split(' (')[0]} {v * 100:.0f}" for k, v in m["by_set"].items())} for m in sent["models"]],
+        "cascade": sent["cascade"],
     },
     "credit": {
         "dataset": "30,000 card accounts, 6,000 held-out",

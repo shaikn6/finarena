@@ -1,86 +1,86 @@
 {
   "sentiment": {
-    "dataset": "2,388 held-out finance tweets",
+    "dataset": "3 held-out sets: tweets (2,388), manual headlines (267), news snippets (2,000); accuracy shown is the unweighted mean",
     "models": [
       {
-        "name": "tfidf+logreg",
-        "accuracy": 0.8279,
-        "macro_f1": 0.7459,
-        "latency_ms": 0.2
+        "name": "TF-IDF + logistic regression",
+        "accuracy": 0.7363,
+        "latency_ms": 0.3,
+        "detail": "tweets 76 \u00b7 headlines 73 \u00b7 news snippets 72"
       },
       {
-        "name": "finbert (zero-shot)",
-        "accuracy": 0.7253,
-        "macro_f1": 0.6682,
-        "latency_ms": 10.9
+        "name": "FinBERT (zero-shot)",
+        "accuracy": 0.7241,
+        "latency_ms": 13.9,
+        "detail": "tweets 73 \u00b7 headlines 71 \u00b7 news snippets 74"
       },
       {
-        "name": "qwen2.5-0.5b zero-shot",
-        "accuracy": 0.6558,
-        "macro_f1": 0.3098,
-        "latency_ms": 58.4
+        "name": "Qwen2.5-0.5B + LoRA, tweets only (previous)",
+        "accuracy": 0.7047,
+        "latency_ms": 99.4,
+        "detail": "tweets 91 \u00b7 headlines 62 \u00b7 news snippets 59"
       },
       {
-        "name": "qwen2.5-0.5b + LoRA",
-        "accuracy": 0.907,
-        "macro_f1": 0.8796,
-        "latency_ms": 74.3
+        "name": "Qwen2.5-0.5B + LoRA, news + tweets",
+        "accuracy": 0.8268,
+        "latency_ms": 99.4,
+        "detail": "tweets 87 \u00b7 headlines 77 \u00b7 news snippets 85"
       }
     ],
     "cascade": [
       {
         "threshold": 0.0,
         "escalated": 0.0,
-        "accuracy": 0.8278894472361809,
-        "avg_cost": 0.2
-      },
-      {
-        "threshold": 0.4,
-        "escalated": 0.012981574539363484,
-        "accuracy": 0.8345896147403685,
-        "avg_cost": 1.1645309882747068
+        "accuracy": 0.7363,
+        "avg_cost": 0.3
       },
       {
         "threshold": 0.5,
-        "escalated": 0.06909547738693467,
-        "accuracy": 0.8542713567839196,
-        "avg_cost": 5.333793969849245
+        "escalated": 0.089,
+        "accuracy": 0.7627,
+        "avg_cost": 9.2
       },
       {
         "threshold": 0.6,
-        "escalated": 0.15954773869346733,
-        "accuracy": 0.88107202680067,
-        "avg_cost": 12.054396984924622
+        "escalated": 0.26,
+        "accuracy": 0.795,
+        "avg_cost": 26.1
       },
       {
         "threshold": 0.7,
-        "escalated": 0.2508375209380235,
-        "accuracy": 0.8961474036850922,
-        "avg_cost": 18.837227805695143
+        "escalated": 0.411,
+        "accuracy": 0.8093,
+        "avg_cost": 41.2
       },
       {
         "threshold": 0.8,
-        "escalated": 0.36976549413735343,
-        "accuracy": 0.9032663316582915,
-        "avg_cost": 27.673576214405358
+        "escalated": 0.593,
+        "accuracy": 0.8203,
+        "avg_cost": 59.2
+      },
+      {
+        "threshold": 0.85,
+        "escalated": 0.688,
+        "accuracy": 0.8247,
+        "avg_cost": 68.7
       },
       {
         "threshold": 0.9,
-        "escalated": 0.5632328308207705,
-        "accuracy": 0.907035175879397,
-        "avg_cost": 42.04819932998325
+        "escalated": 0.789,
+        "accuracy": 0.8275,
+        "avg_cost": 78.8
       },
       {
         "threshold": 0.95,
-        "escalated": 0.7328308207705193,
-        "accuracy": 0.907035175879397,
-        "avg_cost": 54.64932998324959
+        "escalated": 0.9,
+        "accuracy": 0.8277,
+        "avg_cost": 89.8
       },
       {
         "threshold": 1.01,
         "escalated": 1.0,
-        "accuracy": 0.907035175879397,
-        "avg_cost": 74.5
+        "accuracy": 0.8268,
+        "avg_cost": 99.7
       }
     ]
   },

@@ -95,6 +95,7 @@ input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
 .tbl{display:grid;gap:9px}
 .mrow{display:grid;grid-template-columns:128px 1fr 92px;gap:10px;align-items:center;font:500 11.5px var(--mono)}
 .mrow .nm{line-height:1.25}
+.mrow .sub{font-weight:400;font-size:10px;color:var(--ink2);margin-top:2px}
 .mrow .tr{height:20px;background:rgba(21,18,15,.1);position:relative}
 .mrow .tr i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
 .mrow.best .tr i{background:var(--accent)}
@@ -125,8 +126,8 @@ svg text{font-family:var(--mono);font-size:10px;fill:var(--ink2)}
     <section class="card" aria-labelledby="h-sent">
       <div class="kicker">No. 1 · Sentiment</div>
       <h2 id="h-sent">Read the <em>tape.</em></h2>
-      <p class="lede">One tweet per line. A fast model answers; if it isn’t sure, the request is escalated to a fine-tuned LLM.</p>
-      <label class="f" for="tweets">Finance tweets</label>
+      <p class="lede">One text per line: a tweet, a headline or a news snippet. A fast model answers; if it isn’t sure, the request is escalated to a fine-tuned LLM.</p>
+      <label class="f" for="tweets">Finance text</label>
       <textarea id="tweets" spellcheck="false">$NVDA crushes earnings and raises guidance
 Fed leaves rates unchanged, as expected
 Regional bank shares tumble as loan losses mount
@@ -264,7 +265,8 @@ $('#run-cred').onclick = async () => {
 function bars(rows, getV, max, fmt, bestIdx, lo = 0) {
   const t = el('div', 'tbl');
   rows.forEach((r, i) => { const m = el('div', 'mrow' + (i === bestIdx ? ' best' : '')); const tr = el('div', 'tr'); const f = el('i'); f.style.width = Math.max(2, (getV(r) - lo) / (max - lo) * 100) + '%'; tr.append(f);
-    m.append(el('div', 'nm', r.name), tr, el('div', 'val', fmt(r))); t.append(m); });
+    const nm = el('div', 'nm', r.name); if (r.detail) nm.append(el('div', 'sub', r.detail));
+    m.append(nm, tr, el('div', 'val', fmt(r))); t.append(m); });
   return t;
 }
 function renderArena(a) {
@@ -273,7 +275,7 @@ function renderArena(a) {
   const c1 = el('div'); c1.append(el('div', 'cap', 'Sentiment accuracy · ' + a.sentiment.dataset));
   const sm = a.sentiment.models, best = sm.reduce((b, m, i) => m.accuracy > sm[b].accuracy ? i : b, 0);
   c1.append(bars(sm, m => m.accuracy, 1, m => (m.accuracy * 100).toFixed(1) + '% · ' + m.latency_ms + 'ms', best, 0.5));
-  c1.append(el('div', 'cap', 'bars start at 50% accuracy; labels show accuracy · latency'));
+  c1.append(el('div', 'cap', 'bars start at 50%; labels show average accuracy · latency per request'));
   const c = el('div', 'cap', 'Credit AUC · ' + a.credit.dataset); c.style.marginTop = '26px'; c1.append(c);
   const cm = a.credit.models, cb = cm.reduce((b, m, i) => m.auc > cm[b].auc ? i : b, 0);
   c1.append(bars(cm, m => m.auc, .8, m => m.auc.toFixed(3), cb, .7));
@@ -301,10 +303,10 @@ function renderArena(a) {
   root.append(c1, c2, c3);
 }
 async function boot() {
-  try { const r = await api('/ready'); $('#ready').textContent = 'live · ' + Object.entries(r.models).filter(([, v]) => v).map(([k]) => k).join(' + '); } catch (e) { $('#ready').textContent = 'offline'; }
+  try { const r = await api('/ready'); $('#ready').textContent = 'live · ' + Object.entries(r.models).filter(([, v]) => v).map(([k]) => k === 'sentiment_llm' ? 'LLM' : k).join(' + '); } catch (e) { $('#ready').textContent = 'offline'; }
   try { renderArena(await api('/v1/arena')); } catch (e) { $('#arena').replaceChildren(el('div', 'cap', 'Arena results unavailable: ' + e.message)); }
 }
-const FACTS = ['LoRA-tuned Qwen-0.5B <b>90.7%</b> accuracy', 'routing sends <b>37%</b> of tweets to the LLM', '<b>−63%</b> latency vs always-LLM at −0.4 pts', 'gradient boosting beats logistic regression by <b>+0.027 AUC</b>', 'buy &amp; hold Sharpe <b>0.65</b> — unbeaten', 'learned traders guess direction <b>51–52%</b> vs 52.7% “always up”', 'sex is never a model input'];
+const FACTS = ['the sentiment model is trained on <b>news</b>, not just tweets', 'a fast model answers what it can; the LLM only sees the uncertain requests', 'gradient boosting beats logistic regression by <b>+0.027 AUC</b>', 'buy &amp; hold Sharpe <b>0.65</b> — unbeaten', 'learned traders guess direction <b>51–52%</b> vs 52.7% “always up”', 'sex is never a model input'];
 $('#tape').innerHTML = (FACTS.map(f => f + '<i>◆</i>').join('')).repeat(2);
 boot();
 </script>

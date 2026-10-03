@@ -14,7 +14,7 @@ class Settings:
     api_keys: frozenset = field(default_factory=frozenset)
     artifact_dir: Path = Path("artifacts")
     max_batch: int = 64
-    max_text_chars: int = 512
+    max_text_chars: int = 2000
     max_image_bytes: int = 10 * 1024 * 1024
     cascade_threshold: float = 0.8
     enable_llm: bool = True
@@ -30,7 +30,7 @@ class Settings:
         if env == "prod" and not keys:
             raise RuntimeError("FINARENA_API_KEYS must be set when FINARENA_ENV=prod (use FINARENA_ENV=dev to disable auth locally)")
         return cls(env=env, api_keys=keys, artifact_dir=Path(os.environ.get("FINARENA_ARTIFACT_DIR", "artifacts")),
-                   max_batch=_int("FINARENA_MAX_BATCH", 64), max_text_chars=_int("FINARENA_MAX_TEXT_CHARS", 512),
+                   max_batch=_int("FINARENA_MAX_BATCH", 64), max_text_chars=_int("FINARENA_MAX_TEXT_CHARS", 2000),
                    max_image_bytes=_int("FINARENA_MAX_IMAGE_BYTES", 10 * 1024 * 1024),
                    cascade_threshold=float(os.environ.get("FINARENA_CASCADE_THRESHOLD", "0.8")),
                    enable_llm=os.environ.get("FINARENA_ENABLE_LLM", "1") == "1",

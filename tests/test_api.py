@@ -88,7 +88,8 @@ def test_arena_endpoint_serves_real_benchmark_results(make_client):
     a = r.json()
     assert {"sentiment", "credit", "trading"} <= set(a)
     best = max(a["sentiment"]["models"], key=lambda m: m["accuracy"])
-    assert best["name"] == "qwen2.5-0.5b + LoRA" and best["accuracy"] > 0.9
+    assert best["accuracy"] > 0.8 and best["detail"]
+    assert all(m["accuracy"] < best["accuracy"] for m in a["sentiment"]["models"] if m is not best)
     assert a["sentiment"]["cascade"][-1]["escalated"] == 1.0
 
 
