@@ -20,7 +20,7 @@ client = TestClient(create_app(s, reg))
 names = ["Bearish", "Bullish", "Neutral"]
 
 tw = load_dataset("zeroshot/twitter-financial-news-sentiment")["validation"].shuffle(seed=0).select(range(N_TWEETS))
-jb = load_dataset("Jean-Baptiste/financial_news_sentiment")["test"]  # manually labeled headlines, never trained on
+jb = load_dataset("Jean-Baptiste/financial_news_sentiment")["test"]  # manually labeled headlines; this test split is never trained on
 jb_map = {0: 0, 2: 1, 1: 2}  # negative -> Bearish, positive -> Bullish, neutral -> Neutral
 sets = {"tweets (sample)": (list(tw["text"]), list(tw["label"])), "manual headlines": (list(jb["title"]), [jb_map[int(x)] for x in jb["labels"]])}
 

@@ -1,5 +1,7 @@
 # FinArena
 
+[![ci](https://github.com/shaikn6/finarena/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/finarena/actions/workflows/ci.yml)
+
 One authenticated API in front of several fintech models, each chosen for the job it is best at, with routing
 between a cheap model and an accurate one so most requests never pay for the expensive model.
 
@@ -20,11 +22,34 @@ over the measured benchmark results); API reference at `/docs`.
 
 ## Quick start
 
+The trained models are committed, so a fresh clone needs no training step:
+
 ```bash
-make install && make train        # trains the credit model (downloads the public dataset)
-python scripts/train_sentiment.py # builds the fast sentiment model; pass an adapter dir to add the LLM
-FINARENA_ENV=dev make run         # auth disabled for local use only
+make install                # creates .venv and installs the package with the dev tools
+FINARENA_ENV=dev make run   # http://localhost:8000, auth disabled for local use only
 ```
+
+In a second terminal:
+
+```bash
+curl localhost:8000/health
+curl localhost:8000/ready
+curl -H "content-type: application/json" localhost:8000/v1/sentiment \
+  -d '{"texts": ["$TSLA beats earnings, stock jumps"], "strategy": "auto"}'
+curl -H "content-type: application/json" localhost:8000/v1/credit/score \
+  -d '{"applications": [{"limit_bal": 50000, "education": 2, "marriage": 1, "age": 35, "pay_status": [3, 3, 2, 2, 2, 2], "bill_amt": [48000, 48000, 48000, 48000, 48000, 48000], "pay_amt": [0, 0, 0, 0, 0, 0]}]}'
+```
+
+Optional steps:
+
+```bash
+.venv/bin/pip install -e ".[dev,llm]"   # adds the LLM tier (torch, transformers, peft); the Qwen2.5-0.5B base model is downloaded on first start
+make train                              # retrains the credit model from the public dataset (downloaded from OpenML)
+```
+
+Without the `llm` extra, `/ready` reports `"sentiment_llm": false`, `strategy: "auto"` serves the fast model only (nothing
+escalates) and `strategy: "accurate"` returns `503`. The sentiment models are not trained in this repo: they are
+imported from fin-lora with `scripts/import_sentiment.py` (see Updating the sentiment model).
 
 Or with Docker Compose (read-only filesystem, non-root, health check): `cp .env.example .env`, set your keys, then
 `docker compose up -d --build`. See [docs/DEPLOY.md](docs/DEPLOY.md) for sizing, TLS, monitoring and rollback.
@@ -41,7 +66,7 @@ curl -H "x-api-key: key-one" -H "content-type: application/json" localhost:8000/
 Build with the LLM (about 3.8 GB; the base model is baked in so startup needs no network):
 `docker build --build-arg EXTRAS='[llm]' --build-arg PRELOAD_LLM=1 -t finarena:llm .`
 Set `FINARENA_REQUIRE_LLM=1` so the container refuses to start, rather than silently serving only the fast model, if
-the LLM cannot load. `/ready` reports `sentiment_llm` either way. The trained artifacts (`artifacts/`, 39 MB, including the 35 MB
+the LLM cannot load. `/ready` reports `sentiment_llm` either way. The trained artifacts (`artifacts/`, 38.5 MB, which `du -sh` shows as 37M, including the 35.2 MB
 LoRA adapter) are committed, so a fresh clone builds and runs as-is; `scripts/` regenerates them. Only `signature.pt`
 (AGPL-linked) is kept out of git: copy it in yourself to enable `/v1/signature/detect`.
 
@@ -79,7 +104,9 @@ values the running service reports.
   | **Qwen2.5-0.5B + LoRA, news + tweets (accurate tier)** | 86.6% | **76.8%** | **84.7%** |
 
   How to read it: the tweets-only model was excellent on tweets and poor on news, which is why the current model was
-  retrained on news. The headline set is the independent test (labels written by people, never trained on), but it has
+  retrained on news. The headline set is the human-labelled test: it is the test split of
+  `Jean-Baptiste/financial_news_sentiment`, and those 267 headlines were never trained on, but the same dataset's training
+  split is part of the training mix, so it is held out rather than a different source. It has
   only 267 examples, so the margin of error is about 5 points and the LoRA model's lead there is **not statistically
   proven**; it also contains just 12 negative headlines, so negative-class results are unreliable. The snippet labels
   were produced by an LLM ensemble (NOSIBLE), and the model was trained on the same kind of labels, so its 84.7% there
@@ -125,27 +152,39 @@ python scripts/import_sentiment.py ~/fin-lora && python scripts/build_arena.py &
 The adapter ships with a `prompt.json` (the exact prompt template and token window it was trained with) and the API
 reads its prompt from there, so serving cannot drift from training. An adapter without that file refuses to load.
 
-## Capacity (measured, one process, Apple M-series laptop, 8 concurrent clients, 60 requests each)
+## Capacity
+
+Measured on 2026-10-10 on an Apple M2 Pro (14-inch MacBook Pro, 16 GB), one native process with the LLM on the Apple
+GPU, 8 concurrent clients, 60 requests per path, load average about 3.5. Raw output of both runs:
+[artifacts/load_test.txt](artifacts/load_test.txt); the table is the second, warm run.
+
+```bash
+FINARENA_ENV=dev FINARENA_RATE_PER_MINUTE=0 .venv/bin/uvicorn finarena.asgi:app   # needs the llm extra
+.venv/bin/python scripts/load_test.py http://localhost:8000 60 8                  # in a second terminal
+```
 
 | Path | Throughput | p50 | p95 | Errors |
 |---|---|---|---|---|
-| sentiment `fast` | 480 req/s | 7 ms | 59 ms | 0 |
-| sentiment `auto` (cascade) | 18 req/s | 506 ms | 1122 ms | 0 |
-| sentiment `accurate` (LLM only) | 17 req/s | 448 ms | 503 ms | 0 |
-| credit score | 57 req/s | 124 ms | 208 ms | 0 |
+| sentiment `fast` | 644 req/s | 8 ms | 19 ms | 0 |
+| sentiment `auto` (cascade) | 23 req/s | 504 ms | 524 ms | 0 |
+| sentiment `accurate` (LLM only) | 17 req/s | 455 ms | 509 ms | 0 |
+| credit score | 51 req/s | 139 ms | 228 ms | 0 |
 
-Inputs mix tweets, headlines and news-length snippets. On this mix `auto` is no faster than `accurate`: the fast model
+The LLM paths depend heavily on what else the machine is doing: the same test on this laptop under heavy load
+(load average about 15) dropped to 4-6 req/s for `auto` and `accurate`.
+
+Inputs mix tweets, headlines and news-length snippets. On this mix `auto` is only slightly faster than `accurate`: the fast model
 is rarely confident about news, so most requests escalate (about 52-70% on the test sets). The cascade saves real
 work on easy text such as tweets, much less on news.
 
-In the Docker image (CPU only, 4 concurrent clients, 40 requests each, ~2.6 GB RAM): fast 429 req/s, credit 64 req/s,
-auto 4.5 req/s (p50 1.3 s), accurate 3.3 req/s (p50 1.3 s), 0 errors, 0 restarts. The accurate path is about 5x
-slower on CPU than on an Apple GPU.
+In the Docker image (an earlier recorded run, not repeated on 2026-10-10; CPU only, 4 concurrent clients, 40 requests
+each, ~2.6 GB RAM): fast 429 req/s, credit 64 req/s, auto 4.5 req/s (p50 1.3 s), accurate 3.3 req/s (p50 1.3 s),
+0 errors, 0 restarts. Reproduce with `python scripts/load_test.py http://localhost:8000 40 4` against the container.
 
 The LLM runs one request at a time (torch on Apple's GPU aborts the process if two threads use it at once; this was
 found by this very load test, which killed the first version of the server). Callers wait up to
 `FINARENA_MODEL_WAIT_SECONDS` (default 20) for their turn, then receive `503` with `Retry-After: 2`. Run more
-processes or replicas to scale the accurate path; `scripts/load_test.py` reproduces these numbers; run the server with `FINARENA_RATE_PER_MINUTE=0` when load testing,
+processes or replicas to scale the accurate path; `scripts/load_test.py` produced these numbers; run the server with `FINARENA_RATE_PER_MINUTE=0` when load testing,
 otherwise the rate limit (below) will answer most of the requests with `429`.
 
 ## Limitations (read before selling or deploying)

@@ -7,7 +7,7 @@
     "sex_used_as_feature": false
   },
   "sentiment": {
-    "data": "trained on NOSIBLE news snippets, tweets and manually labeled headlines; tested on 3 held-out sets",
+    "data": "trained on NOSIBLE news snippets, tweets and the training split of the manually labeled headlines; tested on 3 held-out sets (the headline test split is never trained on)",
     "benchmark": {
       "TF-IDF + logistic regression": {
         "tweets": 0.7584,
