@@ -60,6 +60,35 @@ def test_unconfigured_services_return_503_not_500(make_client):
     assert c.post("/v1/credit/score", json={"applications": []}, headers=H).status_code in (422, 503)
 
 
+def test_disabled_signature_endpoint_is_503_even_with_an_empty_body(make_client):
+    c = make_client()
+    assert c.post("/v1/signature/detect", headers=H).status_code == 503  # Content-Length: 0
+    assert c.post("/v1/signature/detect").status_code == 401
+
+
+def test_bodyless_post_without_content_length_reaches_the_route(make_client):
+    """What `curl -X POST` sends: no body, so neither Content-Length nor Transfer-Encoding."""
+    import anyio
+
+    sent = []
+
+    async def call():
+        scope = dict(type="http", http_version="1.1", method="POST", path="/v1/signature/detect", raw_path=b"/v1/signature/detect",
+                     query_string=b"", headers=[(b"x-api-key", b"secret")], client=("testclient", 1), server=("testserver", 80),
+                     scheme="http", root_path="")
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(message):
+            sent.append(message)
+
+        await make_client().app(scope, receive, send)
+
+    anyio.run(call)
+    assert sent[0]["status"] == 503
+
+
 def test_ready_reports_loaded_models(make_client):
     assert make_client().get("/ready").json()["models"]["sentiment"] is True
 

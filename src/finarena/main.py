@@ -68,7 +68,8 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
     def reject(request):
         """Early rejection for API calls: the per-client rate limit first (so oversized probes are not free), then the
         body-size cap. The cap trusts the declared Content-Length, which the HTTP server enforces, so POSTs that do
-        not declare one (chunked uploads) are refused rather than read without a bound."""
+        not declare one (chunked uploads) are refused rather than read without a bound. An HTTP/1.x request with
+        neither Content-Length nor Transfer-Encoding has no body at all, so it is let through to the route."""
         if not request.url.path.startswith("/v1/"):
             return None
         allowed, retry = limiter.check(client_key(request))
@@ -76,7 +77,10 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
             return JSONResponse({"detail": "rate limit exceeded"}, status_code=429, headers={"Retry-After": str(max(1, round(retry)))})
         declared = request.headers.get("content-length")
         if declared is None:
-            return JSONResponse({"detail": "Content-Length required"}, status_code=411) if request.method == "POST" else None
+            bodyless = request.scope.get("http_version", "").startswith("1.") and "transfer-encoding" not in request.headers
+            if request.method == "POST" and not bodyless:
+                return JSONResponse({"detail": "Content-Length required"}, status_code=411)
+            return None
         if not declared.isdigit():
             return JSONResponse({"detail": "invalid Content-Length"}, status_code=400)
         if int(declared) > body_cap:
@@ -176,10 +180,14 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
     def prometheus_metrics():
         return PlainTextResponse(metrics.render(), media_type="text/plain; version=0.0.4")
 
-    @app.post("/v1/signature/detect", response_model=SignatureResponse, dependencies=[Depends(require_api_key)])
-    async def signature(file: UploadFile = File(...)):
+    def require_signature():
+        """Checked before the upload is validated, so a disabled detector answers 503 whatever the body looks like."""
         if registry.signature is None:
             raise HTTPException(503, "signature detector not enabled on this deployment")
+
+    @app.post("/v1/signature/detect", response_model=SignatureResponse,
+              dependencies=[Depends(require_api_key), Depends(require_signature)])
+    async def signature(file: UploadFile = File(...)):
         if file.content_type not in IMAGE_TYPES:
             raise HTTPException(415, "image must be JPEG or PNG")
         data = await file.read(settings.max_image_bytes + 1)

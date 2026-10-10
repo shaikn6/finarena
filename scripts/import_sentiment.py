@@ -21,7 +21,7 @@ if missing:
 bench = json.loads(needed["benchmark"].read_text())
 cards = json.loads((out / "model_cards.json").read_text())
 cards["sentiment"] = dict(
-    data="trained on NOSIBLE news snippets, tweets and manually labeled headlines; tested on 3 held-out sets",
+    data="trained on NOSIBLE news snippets, tweets and the training split of the manually labeled headlines; tested on 3 held-out sets (the headline test split is never trained on)",
     benchmark={m["name"]: m["by_set"] for m in bench["models"]},
     cascade_threshold=bench["chosen_threshold"],
     cascade=next(r for r in bench["cascade"] if r["threshold"] == bench["chosen_threshold"]),

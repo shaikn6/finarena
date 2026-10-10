@@ -1,0 +1,17 @@
+# scripts/load_test.py, raw output of two consecutive runs against one natively running process (no Docker)
+# date:    2026-10-10
+# machine: Apple M2 Pro, 14-inch MacBook Pro, 16 GB RAM, macOS 27.0.1; LLM on Apple MPS; load average about 3.5
+# server:  FINARENA_ENV=dev FINARENA_RATE_PER_MINUTE=0 .venv/bin/uvicorn finarena.asgi:app
+# client:  .venv/bin/python scripts/load_test.py http://localhost:8000 60 8
+
+# run 1 (first requests after startup, includes LLM warm-up)
+sentiment fast         n=60 conc=8 p50=      7ms p95=     56ms max=     72ms rps=498.8 errors=0 []
+sentiment auto         n=60 conc=8 p50=    519ms p95=   1101ms max=   1256ms rps= 17.8 errors=0 []
+sentiment accurate     n=60 conc=8 p50=    460ms p95=    516ms max=    519ms rps= 16.7 errors=0 []
+credit accurate        n=60 conc=8 p50=    124ms p95=    179ms max=    183ms rps= 55.6 errors=0 []
+
+# run 2 (warm)
+sentiment fast         n=60 conc=8 p50=      8ms p95=     19ms max=     27ms rps=643.7 errors=0 []
+sentiment auto         n=60 conc=8 p50=    504ms p95=    524ms max=    545ms rps= 22.9 errors=0 []
+sentiment accurate     n=60 conc=8 p50=    455ms p95=    509ms max=    511ms rps= 17.0 errors=0 []
+credit accurate        n=60 conc=8 p50=    139ms p95=    228ms max=    242ms rps= 51.0 errors=0 []
