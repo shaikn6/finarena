@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from finarena.models.concurrency import ModelBusy, Serialized  # noqa: F401  (re-exported)
+from finarena.pins import revision
 from finarena.schemas import SENTIMENT_LABELS
 
 TOKEN_MARGIN = 4  # headroom for tokens that merge or split differently at the template/text boundary
@@ -56,9 +57,9 @@ class LLMModel:
         from transformers import AutoModelForCausalLM, AutoTokenizer
         self.torch = torch
         self.device = device or ("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
-        self.tok = AutoTokenizer.from_pretrained(base_id)
+        self.tok = AutoTokenizer.from_pretrained(base_id, revision=revision(base_id))
         self.tok.padding_side = "left"
-        base = AutoModelForCausalLM.from_pretrained(base_id, dtype=torch.bfloat16 if self.device != "cpu" else torch.float32)
+        base = AutoModelForCausalLM.from_pretrained(base_id, revision=revision(base_id), dtype=torch.bfloat16 if self.device != "cpu" else torch.float32)
         self.model = PeftModel.from_pretrained(base, adapter_dir).eval().to(self.device)
         self.ids = [self.tok(" " + label, add_special_tokens=False).input_ids[0] for label in SENTIMENT_LABELS]
         self.template, self.max_len = load_prompt_config(adapter_dir)

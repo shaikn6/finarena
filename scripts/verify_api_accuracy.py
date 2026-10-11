@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from finarena.config import Settings
 from finarena.loader import load_registry
 from finarena.main import create_app
+from finarena.pins import revision
 
 N_TWEETS = int(os.environ.get("N", 400))
 s = Settings(env="dev", artifact_dir=Path("artifacts"), max_batch=16, rate_per_minute=0)
@@ -19,8 +20,8 @@ assert reg.sentiment and reg.sentiment.accurate, "LLM did not load"
 client = TestClient(create_app(s, reg))
 names = ["Bearish", "Bullish", "Neutral"]
 
-tw = load_dataset("zeroshot/twitter-financial-news-sentiment")["validation"].shuffle(seed=0).select(range(N_TWEETS))
-jb = load_dataset("Jean-Baptiste/financial_news_sentiment")["test"]  # manually labeled headlines; this test split is never trained on
+tw = load_dataset("zeroshot/twitter-financial-news-sentiment", revision=revision("zeroshot/twitter-financial-news-sentiment"))["validation"].shuffle(seed=0).select(range(N_TWEETS))
+jb = load_dataset("Jean-Baptiste/financial_news_sentiment", revision=revision("Jean-Baptiste/financial_news_sentiment"))["test"]  # manually labeled headlines; this test split is never trained on
 jb_map = {0: 0, 2: 1, 1: 2}  # negative -> Bearish, positive -> Bullish, neutral -> Neutral
 sets = {"tweets (sample)": (list(tw["text"]), list(tw["label"])), "manual headlines": (list(jb["title"]), [jb_map[int(x)] for x in jb["labels"]])}
 
