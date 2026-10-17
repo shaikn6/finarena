@@ -39,7 +39,8 @@ card = dict(credit=dict(
     data="UCI Default of Credit Card Clients (30,000 accounts, 22% default), 60/20/20 split",
     test_auc_hgb=round(roc_auc_score(yte, hgb.predict_proba(Xte)[:, 1]), 4),
     test_auc_logreg=round(roc_auc_score(yte, lr.predict_proba(Xte)[:, 1]), 4),
-    threshold=round(threshold, 4), sex_used_as_feature=False))
+    threshold=round(threshold, 4), sex_used_as_feature=False,
+    age_used_as_feature=True, marital_status_used_as_feature=True))  # ECOA-protected bases: see README, Limitations
 joblib.dump(dict(hgb=hgb, lr=lr, threshold=threshold, columns=list(X.columns)), out / "credit.joblib", compress=3)
 cards = json.loads((out / "model_cards.json").read_text()) if (out / "model_cards.json").exists() else {}
 (out / "model_cards.json").write_text(json.dumps(cards | card, indent=2))

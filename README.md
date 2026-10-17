@@ -81,8 +81,8 @@ whether it escalated, so cost is auditable. `fast` and `accurate` force a single
 - Strict request validation (Pydantic), batch / text / image size limits, constant-time API-key check.
 - Request IDs on every response, structured JSON access logs, no stack traces returned to clients.
 - Models load from `artifacts/`; a missing optional model degrades that endpoint to 503, never a crash.
-- Sex is not an accepted input and not a model feature. The credit service returns the cost assumption behind its
-  decision threshold with every response.
+- Sex is not an accepted input and not a model feature. **Age and marital status are** (see the fair-lending
+  disclosure under Limitations). The credit service returns the cost assumption behind its decision threshold with every response.
 - Per-client rate limiting (`429` + `Retry-After`) and a request-size cap that refuses oversized bodies before reading them.
 - Tests cover the API contract, auth, validation, routing, concurrency, rate limiting and credit behaviour on the real model; lint clean (ruff); CI
   workflow runs tests and a container smoke test.
@@ -193,6 +193,13 @@ otherwise the rate limit (below) will answer most of the requests with `429`.
 - The credit model is trained on one public 2005 Taiwanese dataset. Before lending decisions it must be retrained
   and validated on your own portfolio, with your own fair-lending and model-risk review (e.g. SR 11-7 / ECOA).
   Outputs are decision support, not adverse-action notices.
+- **Fair lending (ECOA / Regulation B):** excluding sex is not enough. The credit model **does use age (`age`) and marital
+  status (`marriage`) as input features**, and the `explainable` model's reason codes can print "Borrower age" or "Marital
+  status" as a decline reason (`REASON_TEXT` in `src/finarena/models/credit.py`). Age and marital status are protected bases under
+  ECOA, so this credit model is a demonstration of the API and the reason-code mechanics, **not a model to make real credit
+  decisions with**. A production model would exclude ECOA-protected bases (and be tested for proxies for them) before use. The
+  reported AUCs include the effect of these two features, and the reason codes are left as the model's real drivers rather than
+  hidden. This model has not been retrained without them.
 - Sentiment is trained on English finance tweets, press-release headlines and news snippets. Other languages are out of
   distribution, texts are trimmed to fit a 256-token window (the beginning is kept), and the model is weakest on negative news headlines (rare
   in the only human-labeled test set).
