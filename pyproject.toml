@@ -9,7 +9,7 @@ dependencies = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "pydantic>=2.6", "s
 [project.optional-dependencies]
 llm = ["torch>=2.2", "transformers>=4.45", "peft>=0.12"]
 signature = ["ultralytics>=8.3", "pillow"]
-dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.5"]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.5", "pillow", "pytest-cov>=5"]
 
 [build-system]
 requires = ["setuptools>=68"]
