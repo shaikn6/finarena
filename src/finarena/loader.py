@@ -34,7 +34,12 @@ def load_registry(s: Settings) -> Registry:
                 else:
                     log.exception("LLM sentiment model failed to load; serving fast model only")
         reg.sentiment = SentimentService(fast, accurate, s.cascade_threshold)
-    if s.enable_signature and (d / "signature.pt").exists():
-        from finarena.models.signature import SignatureDetector
-        reg.signature = Serialized(SignatureDetector(d / "signature.pt"), s.model_wait_seconds)
+    if s.enable_signature:
+        weights = s.signature_weights or d / "signature.pt"
+        if weights.exists():
+            from finarena.models.signature import SignatureDetector
+            reg.signature = Serialized(SignatureDetector(weights), s.model_wait_seconds)
+        else:  # the weights are AGPL-linked and not shipped: say so at startup instead of a silent 503 later
+            log.warning("signature detector enabled but weights not found at %s; /v1/signature/detect will answer 503 "
+                        "(set FINARENA_SIGNATURE_WEIGHTS, see the README)", weights)
     return reg

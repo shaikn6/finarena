@@ -68,7 +68,7 @@ Build with the LLM (about 3.8 GB; the base model is baked in so startup needs no
 Set `FINARENA_REQUIRE_LLM=1` so the container refuses to start, rather than silently serving only the fast model, if
 the LLM cannot load. `/ready` reports `sentiment_llm` either way. The trained artifacts (`artifacts/`, 38.5 MB, which `du -sh` shows as 37M, including the 35.2 MB
 LoRA adapter) are committed, so a fresh clone builds and runs as-is; `scripts/` regenerates them. Only `signature.pt`
-(AGPL-linked) is kept out of git: copy it in yourself to enable `/v1/signature/detect`.
+(AGPL-linked) is kept out of git: supply it yourself to enable `/v1/signature/detect` (see Signature endpoint below).
 
 ## How routing works
 
@@ -133,9 +133,23 @@ All settings are environment variables, read once at startup.
 | `FINARENA_ENABLE_LLM` / `FINARENA_REQUIRE_LLM` | `1` / `0` | Load the LLM; refuse to start if it cannot load |
 | `FINARENA_MODEL_WAIT_SECONDS` | `20` | How long a request waits for a busy model before `503` |
 | `FINARENA_ENABLE_SIGNATURE` | `0` | Enable the AGPL-linked signature endpoint |
+| `FINARENA_SIGNATURE_WEIGHTS` | `<artifact dir>/signature.pt` | Path to the YOLO11 signature weights. Enabled without weights: a startup warning, and the endpoint answers `503` ("signature model not configured") |
 
 Rate limiting keys on the API key when one is sent, otherwise on the client IP. Behind a reverse proxy the IP is the
 proxy's, so either rely on API keys or start uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy address>`.
+
+## Signature endpoint
+
+The route, image decoding and error handling are in the repo and tested with a stand-in model. The YOLO weights are not
+committed: they are AGPL-3.0 (trained with `ultralytics` on an AGPL dataset), and this repo is MIT. To serve real detections:
+
+```bash
+pip install ".[signature]"
+# weights: train with sigdet (https://github.com/shaikn6/sigdet, AGPL-3.0) or use its weights/signature_yolo11n.pt
+export FINARENA_ENABLE_SIGNATURE=1 FINARENA_SIGNATURE_WEIGHTS=/path/to/signature_yolo11n.pt
+# real-inference tests (skipped otherwise); the sample is any document photo with a signature
+FINARENA_SIGNATURE_SAMPLE=/path/to/photo.jpg pytest tests/test_signature.py
+```
 
 ## Updating the sentiment model
 
@@ -210,7 +224,8 @@ otherwise the rate limit (below) will answer most of the requests with `429`.
 The core service (sentiment, credit) depends only on permissively licensed components. **The signature detector
 uses `ultralytics` and a dataset that are AGPL-3.0.** Enabling it in a closed-source commercial product requires
 either open-sourcing that product under AGPL-3.0 or buying an Ultralytics commercial licence. It is an optional
-extra (`pip install ".[signature]"`, `FINARENA_ENABLE_SIGNATURE=1`) and is off by default.
+extra (`pip install ".[signature]"`, `FINARENA_ENABLE_SIGNATURE=1`) and is off by default. The trained weights are not bundled for the same reason: they are derived from the AGPL dataset and library,
+and bundling them would put AGPL material inside this MIT repository.
 
 Qwen2.5-0.5B-Instruct is Apache-2.0. Datasets: UCI credit default (CC BY 4.0); for sentiment,
 `zeroshot/twitter-financial-news-sentiment` (MIT), `Jean-Baptiste/financial_news_sentiment` (MIT) and

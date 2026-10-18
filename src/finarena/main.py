@@ -183,7 +183,7 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
     def require_signature():
         """Checked before the upload is validated, so a disabled detector answers 503 whatever the body looks like."""
         if registry.signature is None:
-            raise HTTPException(503, "signature detector not enabled on this deployment")
+            raise HTTPException(503, "signature model not configured on this deployment (enable it and supply weights, see the README)")
 
     @app.post("/v1/signature/detect", response_model=SignatureResponse,
               dependencies=[Depends(require_api_key), Depends(require_signature)])

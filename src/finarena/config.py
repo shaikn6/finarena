@@ -19,6 +19,7 @@ class Settings:
     cascade_threshold: float = 0.8
     enable_llm: bool = True
     enable_signature: bool = False
+    signature_weights: Path | None = None  # default: <artifact_dir>/signature.pt
     model_wait_seconds: float = 20.0
     require_llm: bool = False
     rate_per_minute: int = 120  # per client; 0 disables
@@ -35,6 +36,7 @@ class Settings:
                    cascade_threshold=float(os.environ.get("FINARENA_CASCADE_THRESHOLD", "0.8")),
                    enable_llm=os.environ.get("FINARENA_ENABLE_LLM", "1") == "1",
                    enable_signature=os.environ.get("FINARENA_ENABLE_SIGNATURE", "0") == "1",
+                   signature_weights=Path(w) if (w := os.environ.get("FINARENA_SIGNATURE_WEIGHTS")) else None,
                    model_wait_seconds=float(os.environ.get("FINARENA_MODEL_WAIT_SECONDS", "20")),
                    require_llm=os.environ.get("FINARENA_REQUIRE_LLM", "0") == "1",
                    rate_per_minute=_int("FINARENA_RATE_PER_MINUTE", 120))

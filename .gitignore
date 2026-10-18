@@ -7,3 +7,4 @@ artifacts/signature.pt
 server.log
 run.log
 .env
+.coverage
