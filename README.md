@@ -113,7 +113,7 @@ values the running service reports.
   overstates how it would do against human judgement. The same numbers were re-measured through this API: on the manual
   headlines the accurate path scores 76.8%, the fast path 73.4%, and `auto` 77.2% while escalating 52% of requests.
   Escalation threshold 0.8 was chosen on dev data only: on the test sets the cascade lands about 1 point from always using
-  the LLM (0.4 to 1.0) while sending 52% (headlines), 56% (tweets) and 70% (news snippets) of requests to it. Latency is batch-size-1
+  the LLM (0.4 to 1.05) while sending 52% (headlines), 56% (tweets) and 70% (news snippets) of requests to it. Latency is batch-size-1
   on Apple MPS and will differ elsewhere.
 
 ## Configuration
