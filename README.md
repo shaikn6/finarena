@@ -1,6 +1,8 @@
-# FinArena
+# finarena
 
-[![ci](https://github.com/shaikn6/finarena/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/finarena/actions/workflows/ci.yml)
+[![CI](https://github.com/shaikn6/finarena/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/finarena/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 
 One authenticated API in front of several fintech models, each chosen for the job it is best at, with routing
 between a cheap model and an accurate one so most requests never pay for the expensive model.
@@ -20,7 +22,33 @@ over the measured benchmark results); API reference at `/docs`.
 
 ![FinArena UI](docs/finarena-ui.png)
 
-## Quick start
+## Why this exists
+
+Calling one large model for every request is expensive, and a single cheap model is wrong on the hard cases. This
+repository shows the engineering around that choice: each task is served by the model family that measured best for
+it, a confidence cascade sends only uncertain sentiment requests to the LLM, and the API around the models (keys, rate
+limits, metrics, degraded modes) reports which model answered every item.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    C["Client or browser UI"] --> API["FastAPI app<br/>src/finarena/main.py<br/>API key, rate limit, size cap, metrics"]
+    API --> D["dispatch.py<br/>sentiment, credit, analyze"]
+    D --> S["SentimentService<br/>models/sentiment.py"]
+    S --> F["Fast model<br/>TF-IDF + logistic regression"]
+    S -- "auto: top probability below 0.8" --> L["LLM model<br/>Qwen2.5-0.5B + LoRA<br/>optional llm extra"]
+    D --> CR["CreditScorer<br/>models/credit.py<br/>gradient boosting, or logistic regression + reason codes"]
+    API --> SG["SignatureDetector<br/>models/signature.py<br/>optional YOLO11n"]
+    LD["loader.py<br/>reads artifacts/"] -.-> S
+    LD -.-> CR
+    LD -.-> SG
+```
+
+A missing optional model (LLM, signature weights) turns its endpoint into a `503` or, for `auto` sentiment, a fast-model
+answer; by default it does not stop the service (`FINARENA_REQUIRE_LLM=1` makes a missing LLM fatal at startup).
+
+## Quickstart
 
 The trained models are committed, so a fresh clone needs no training step:
 
