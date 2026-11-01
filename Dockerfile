@@ -5,7 +5,7 @@
 #
 # Layer order is chosen so day-to-day source edits rebuild in about a minute (not a full reinstall): dependencies and the baked-in model weights
 # depend only on pyproject.toml, and the application source is installed last with --no-deps.
-FROM python:3.12-slim AS build
+FROM python:3.15-slim AS build
 ARG EXTRAS=""
 ARG PRELOAD_LLM=0
 ARG PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu"
@@ -23,7 +23,7 @@ COPY src ./src
 # The stub install left a build/ cache; setuptools would otherwise keep the stub's empty __init__.py as 'newer'.
 RUN rm -rf build src/*.egg-info && pip install --no-cache-dir --prefix=/install --no-deps --force-reinstall .
 
-FROM python:3.12-slim
+FROM python:3.15-slim
 ARG PRELOAD_LLM=0
 RUN useradd --create-home --uid 10001 app
 WORKDIR /app
