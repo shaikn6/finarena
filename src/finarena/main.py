@@ -1,6 +1,7 @@
 """FastAPI application factory. Models are injected so the API can be tested without loading any weights."""
 import json
 import logging
+import math
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -9,6 +10,8 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from finarena import __version__
@@ -42,6 +45,17 @@ class Registry:
     signature: object = None
     cards: dict = field(default_factory=dict)
     arena: dict | None = None
+
+
+def _json_safe(obj):
+    """Replace non-finite floats with None so a payload is JSON-serializable."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
 
 
 def create_app(settings: Settings, registry: Registry) -> FastAPI:
@@ -128,6 +142,14 @@ def create_app(settings: Settings, registry: Registry) -> FastAPI:
     async def model_busy(request: Request, exc: ModelBusy):
         metrics.inc("finarena_model_busy_total")
         return JSONResponse({"detail": str(exc)}, status_code=503, headers={"Retry-After": "2"})
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, exc: RequestValidationError):
+        # A client can smuggle non-standard JSON constants (Infinity/NaN) that
+        # Pydantic rejects but that the default handler echoes into the error
+        # body as raw floats, then fails to serialize — turning a 422 into a
+        # 500. Drop non-finite values so the 422 renders cleanly.
+        return JSONResponse({"detail": _json_safe(jsonable_encoder(exc.errors()))}, status_code=422)
 
     @app.get("/health")
     def health():

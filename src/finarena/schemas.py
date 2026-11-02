@@ -38,13 +38,13 @@ class SentimentResponse(BaseModel):
 
 class CreditApplication(BaseModel):
     """Account snapshot. Sex is deliberately not accepted: it is not a model input (fair-lending)."""
-    limit_bal: float = Field(gt=0, le=10_000_000)
+    limit_bal: float = Field(gt=0, le=10_000_000, allow_inf_nan=False)
     education: int = Field(ge=0, le=6)
     marriage: int = Field(ge=0, le=3)
     age: int = Field(ge=18, le=120)
     pay_status: list[Annotated[int, Field(ge=-2, le=9)]] = Field(min_length=6, max_length=6, description="Repayment status, Sep..Apr (-2..9)")
-    bill_amt: list[float] = Field(min_length=6, max_length=6)
-    pay_amt: list[Annotated[float, Field(ge=0)]] = Field(min_length=6, max_length=6, description="Payments made, Sep..Apr (>= 0)")
+    bill_amt: list[Annotated[float, Field(ge=-10_000_000, le=10_000_000, allow_inf_nan=False)]] = Field(min_length=6, max_length=6)
+    pay_amt: list[Annotated[float, Field(ge=0, le=10_000_000, allow_inf_nan=False)]] = Field(min_length=6, max_length=6, description="Payments made, Sep..Apr (>= 0)")
 
 
 class CreditRequest(BaseModel):
