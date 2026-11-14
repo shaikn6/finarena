@@ -275,3 +275,6 @@ Related experiments the API does not use:
 
 - [trade-arena](https://github.com/shaikn6/trade-arena): walk-forward backtest of trading models, net of costs
 - [exec-rl](https://github.com/shaikn6/exec-rl): PPO trade-execution agent (simulation only)
+
+---
+<sub>Part of [Nagizaaz Shaik's open-source work](https://github.com/shaikn6) · [all repositories](https://github.com/shaikn6?tab=repositories)</sub>
