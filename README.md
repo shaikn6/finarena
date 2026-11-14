@@ -1,5 +1,7 @@
 # finarena
 
+> **One fintech API that routes cheap-to-expensive for sentiment, explains every credit score, and can sign its answers.**
+
 [![CI](https://github.com/shaikn6/finarena/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/finarena/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
