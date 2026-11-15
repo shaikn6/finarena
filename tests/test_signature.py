@@ -94,6 +94,53 @@ def test_loader_honours_the_weights_path_setting(tmp_path, monkeypatch):
     assert reg.signature is not None and seen == [weights]
 
 
+class RecordingYolo:
+    """Records the mode of the image it is given and the conf it is called with; returns preset boxes."""
+
+    def __init__(self, boxes):
+        self.boxes, self.seen = boxes, {}
+
+    def predict(self, img, conf, verbose):
+        self.seen = {"mode": img.mode, "conf": conf}
+        return [type("Result", (), dict(boxes=self.boxes))()]
+
+
+def detector_with(boxes):
+    d = FakeDetector()
+    d.model = RecordingYolo(boxes)
+    return d
+
+
+def box(x1, y1, x2, y2, conf):
+    return type("Box", (), dict(xyxy=np.array([[x1, y1, x2, y2]]), conf=np.float64(conf)))()
+
+
+def test_detect_returns_empty_list_with_image_size_when_there_are_no_boxes():
+    d = detector_with([])
+    dets, w, h = d.detect(png(80, 50))
+    assert dets == [] and (w, h) == (80, 50)
+
+
+def test_detect_converts_a_non_rgb_image_before_inference():
+    buf = io.BytesIO()
+    Image.new("L", (32, 32), 255).save(buf, "PNG")  # grayscale input
+    d = detector_with([])
+    d.detect(buf.getvalue())
+    assert d.model.seen["mode"] == "RGB"
+
+
+def test_detect_forwards_the_confidence_threshold():
+    d = detector_with([])
+    d.detect(png(), conf=0.6)
+    assert d.model.seen["conf"] == 0.6
+
+
+def test_detect_rounds_boxes_and_confidence():
+    d = detector_with([box(1.04, 2.0, 30.06, 20.0, 0.91234)])
+    dets, _, _ = d.detect(png())
+    assert dets == [{"xyxy": [1.0, 2.0, 30.1, 20.0], "confidence": 0.9123}]
+
+
 # Real inference: set FINARENA_SIGNATURE_WEIGHTS to a YOLO11 signature checkpoint (needs `pip install ".[signature]"`).
 # FINARENA_SIGNATURE_SAMPLE optionally points at a document photo that contains a signature.
 WEIGHTS = pathlib.Path(os.environ.get("FINARENA_SIGNATURE_WEIGHTS", "artifacts/signature.pt"))
