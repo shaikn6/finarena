@@ -1,6 +1,6 @@
 # finarena
 
-> **One fintech API that routes cheap-to-expensive for sentiment, explains every credit score, and can sign its answers.**
+> **One fintech API that routes cheap-to-expensive for sentiment, explains every credit score, and detects signatures in document images.**
 
 [![CI](https://github.com/shaikn6/finarena/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/finarena/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -30,6 +30,22 @@ Calling one large model for every request is expensive, and a single cheap model
 repository shows the engineering around that choice: each task is served by the model family that measured best for
 it, a confidence cascade sends only uncertain sentiment requests to the LLM, and the API around the models (keys, rate
 limits, metrics, degraded modes) reports which model answered every item.
+
+## What this is, and how it differs from my other repos
+
+FinArena is a *serving* layer, not a model and not a generic proxy. Three fintech specialists sit behind one
+authenticated API with shared operational concerns: keys, rate limits, size caps, Prometheus metrics, degraded
+modes and a per-item router. It is deliberately distinct from its two neighbours:
+
+- **[fin-lora](https://github.com/shaikn6/fin-lora)** *trains and benchmarks* the sentiment model. FinArena only
+  serves it, and adds the TF-IDF fast tier and the confidence cascade around it.
+- **[llm-gateway](https://github.com/shaikn6/llm-gateway)** is a *general* OpenAI-compatible chat proxy (any
+  provider, response caching, A/B routing, cost tracking). FinArena is the opposite: a small, fixed set of
+  purpose-built, non-chat fintech endpoints, each served by the model family that measured best for it.
+
+So fin-lora is a model, llm-gateway is a generic gateway, and FinArena is the fintech-specific API that combines a
+cost-routed sentiment cascade, explainable credit scoring with reason codes, and signature detection in one
+deployable service.
 
 ## Architecture
 
@@ -120,7 +136,11 @@ whether it escalated, so cost is auditable. `fast` and `accurate` force a single
 ## Measured model behaviour
 
 Numbers come from the benchmark projects that produced these models; see `artifacts/model_cards.json` for the
-values the running service reports.
+values the running service reports. Provenance: the sentiment accuracies below were **re-measured through this
+API's own code path** by `scripts/verify_api_accuracy.py` (needs the `llm` extra and dataset downloads; raw results
+in `artifacts/api_verification.json`); the credit AUCs are **recorded** from credit-arena. On CPU, with no network
+and no LLM, `make test` reproduces the parts that need neither: the full API contract, the routing/cascade decision
+logic, and the credit model's behaviour on the committed `artifacts/credit.joblib`.
 
 - **Credit:** gradient boosting test AUC 0.774 vs logistic regression 0.746 (paired bootstrap difference +0.027,
   95% CI [0.019, 0.036]) on 30,000 accounts. Adding more models or segment specialists gave no significant gain.
