@@ -160,11 +160,13 @@ logic, and the credit model's behaviour on the committed `artifacts/credit.jobli
   only 267 examples, so the margin of error is about 5 points and the LoRA model's lead there is **not statistically
   proven**; it also contains just 12 negative headlines, so negative-class results are unreliable. The snippet labels
   were produced by an LLM ensemble (NOSIBLE), and the model was trained on the same kind of labels, so its 84.7% there
-  overstates how it would do against human judgement. The same numbers were re-measured through this API: on the manual
-  headlines the accurate path scores 76.8%, the fast path 73.4%, and `auto` 77.2% while escalating 52% of requests.
-  Escalation threshold 0.8 was chosen on dev data only: on the test sets the cascade lands about 1 point from always using
-  the LLM (0.4 to 1.05) while sending 52% (headlines), 56% (tweets) and 70% (news snippets) of requests to it. Latency is batch-size-1
-  on Apple MPS and will differ elsewhere.
+  overstates how it would do against human judgement. Part of this was re-measured through this API
+  (`artifacts/api_verification.json`): on all 267 manual headlines the accurate path scores 76.8%, the fast path 73.4%,
+  and `auto` 77.2% while escalating 52% of requests; on a 400-tweet sample the accurate path scores 88.0%, the fast path
+  73.3% and `auto` 86.5% while escalating 58%. The news snippets were not re-measured through the API. Escalation
+  threshold 0.8 was chosen on dev data only: on the full test sets the cascade lands about 1 point from always using
+  the LLM (0.4 to 1.05) while sending 52% (headlines), 56% (tweets) and 70% (news snippets) of requests to it (fin-lora's
+  `cascade_news.json`; not re-run here). Latency is batch-size-1 on Apple MPS and will differ elsewhere.
 
 ## Configuration
 
